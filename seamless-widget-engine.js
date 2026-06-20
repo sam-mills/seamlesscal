@@ -61,32 +61,63 @@ const widgetId = widgetContainer ? widgetContainer.getAttribute('data-widget-id'
 const API_ENDPOINT = `https://getwidgetcalendar-f3y3nhdp5q-uc.a.run.app?id=${widgetId}`
 
 async function fetchAndRenderWidget() {
-  if (!widgetId || !widgetContainer) return
+  if (!widgetId || !widgetContainer) return;
   try {
-    const response = await fetch(API_ENDPOINT)
-    const data = await response.json()
+    const response = await fetch(API_ENDPOINT);
+    const data = await response.json();
     if (data.error) {
-      widgetContainer.innerHTML = `<div style="color:red; font-weight:bold;">SaaS Error: ${data.error}</div>`
-      return
+      widgetContainer.innerHTML = `<div style="color:red; font-weight:bold;">SaaS Error: ${data.error}</div>`;
+      return;
     }
-    cachedSaaSPayload = data
+    cachedSaaSPayload = data;
 
-    const settings = data.settings
-    document.documentElement.style.setProperty('--calendar-primary', settings.primaryColor)
-    document.documentElement.style.setProperty('--calendar-accent', settings.accentColor)
+    const settings = data.settings;
+
+    // 1. Inject the typography base scales dynamically
+    document.documentElement.style.setProperty(
+      '--calendar-primary',
+      settings.primaryColor || '#1e6b7b',
+    );
+    document.documentElement.style.setProperty(
+      '--calendar-accent',
+      settings.accentColor || '#f0ad4e',
+    );
+    document.documentElement.style.setProperty(
+      '--calendar-bg-event',
+      settings.eventBgColor || '#eef7f9',
+    );
+    document.documentElement.style.setProperty('--calendar-radius', settings.borderRadius || '6px');
+    document.documentElement.style.setProperty(
+      '--calendar-border',
+      settings.borderWeight || '1px solid #e0e0e0',
+    );
+
+    // 2. Set structural max boundary width controls dynamically
+    widgetContainer.style.maxWidth = settings.maxWidth || '1100px';
     widgetContainer.style.fontFamily =
       settings.fontFamily === 'serif'
         ? "'Playfair Display', serif"
         : settings.fontFamily === 'mono'
           ? "'Space Mono', monospace"
-          : 'sans-serif'
+          : 'sans-serif';
 
-    renderWidgetSkeleton()
-    renderMonthGrid()
-    initializeModalListeners()
+    // 3. Build the underlying wrapper shell first so containers exist in the DOM
+    renderWidgetSkeleton();
+
+    // 4. Bind the interactive modal listener portals safely
+    initializeModalListeners();
+
+    // 5. Routinely drop the correct data grid target into place based on setting conditions
+    const activeView = settings.defaultView || 'month';
+    if (activeView === 'month') {
+      renderMonthGrid();
+    } else if (activeView === 'agenda') {
+      renderAgendaListView();
+    }
+
   } catch (error) {
-    console.error('SaaS core engine failure:', error)
-    widgetContainer.innerHTML = `<div style="color:red;">Failed to connect to data stream.</div>`
+    console.error('SaaS core engine failure:', error);
+    widgetContainer.innerHTML = `<div style="color:red;">Failed to connect to data stream.</div>`;
   }
 }
 
@@ -187,6 +218,74 @@ function renderMonthGrid() {
     daySlot.appendChild(eventsContainer)
     grid.appendChild(daySlot)
   }
+}
+
+function renderAgendaListView() {
+  const grid = document.getElementById('calendar-grid-body')
+  const label = document.getElementById('currentMonthLabel')
+  if (!grid || !label || !cachedSaaSPayload) return
+
+  // Change layout framework context headers on the wrapper
+  const wrapper = document.querySelector('.seamless-cal-wrapper')
+  if (wrapper) {
+    wrapper.className = 'seamless-cal-wrapper mode-agenda'
+  }
+
+  const year = currentViewDate.getFullYear()
+  const month = currentViewDate.getMonth()
+  label.innerText = `Agenda: ${currentViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' })}`
+
+  grid.innerHTML = '' // Wipe out baseline grids
+
+  // Filter all events belonging to the active current viewing month pane
+  const currentMonthEvents = cachedSaaSPayload.events
+    .filter((event) => {
+      if (!event.start.dateTime) return false
+      const d = new Date(event.start.dateTime)
+      return d.getFullYear() === year && d.getMonth() === month
+    })
+    .sort((a, b) => new Date(a.start.dateTime) - new Date(b.start.dateTime))
+
+  if (currentMonthEvents.length === 0) {
+    grid.innerHTML = `<div style="padding: 40px; text-align: center; color: #64748b; width: 100%;">No upcoming bookings scheduled for this month.</div>`
+    return
+  }
+
+  // Generate dynamic running structural text lists
+  currentMonthEvents.forEach((event) => {
+    const eventDate = new Date(event.start.dateTime)
+    let timeStr = event.start.isAllDay
+      ? 'All Day'
+      : `${eventDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+    const dateLabelStr = eventDate.toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    })
+
+    const agendaItem = document.createElement('div')
+    agendaItem.className = 'agenda-list-row'
+    agendaItem.style.cssText = `
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border-bottom: var(--calendar-border);
+      gap: 16px;
+      width: 100%;
+      box-sizing: border-box;
+    `
+
+    agendaItem.innerHTML = `
+      <div class="agenda-date-badge" style="min-width: 80px; font-weight: 700; color: var(--calendar-accent); font-size: 13px;">
+        ${dateLabelStr}
+      </div>
+      <div class="day-event ${event.isPrivate ? 'private' : ''}" style="flex-grow: 1; margin: 0; background-color: var(--calendar-bg-event); border-radius: var(--calendar-radius);">
+        <span class="event-time-tag">${timeStr}</span>
+        <span class="event-title" style="white-space: normal; font-weight:600;">${event.summary}</span>
+      </div>
+    `
+    grid.appendChild(agendaItem)
+  })
 }
 
 function openCalendarModal(dateLabel, allDayEvents) {
