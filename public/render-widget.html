@@ -1,315 +1,359 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SeamlessCal Embedded Canvas</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SeamlessCal Embedded Canvas</title>
 
-  <style>
-    /* Reset margins and ensure the widget fills its sandboxed canvas beautifully */
-    body { 
-      margin: 0; 
-      padding: 0; 
-      background-color: transparent; 
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    
-    :root {
-      /* Dynamic tokens coming from our dashboard workspace */
-      --calendar-base-bg: #0f172a;
-      --calendar-base-text: #ffffff; /* Controls Headers & UI */
-      --calendar-base-border: #1e293b;
-      --calendar-primary: #1e6b7b; 
-      --calendar-accent: #f0ad4e;  
-      --calendar-bg-event: #eef7f9;
-      --calendar-text: #0f172a; /* Controls Event Text */
-      --calendar-radius: 6px;
-    }
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono&display=swap"
+      rel="stylesheet"
+    />
 
-    .seamless-cal-wrapper { 
+    <style>
+      /* Reset margins and ensure the widget fills its sandboxed canvas beautifully */
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: transparent;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      :root {
+        /* Dynamic tokens coming from our dashboard workspace */
+        --calendar-base-bg: #0f172a;
+        --calendar-base-text: #ffffff; /* Controls Headers & UI */
+        --calendar-base-border: #1e293b;
+        --calendar-primary: #1e6b7b;
+        --calendar-accent: #f0ad4e;
+        --calendar-bg-event: #eef7f9;
+        --calendar-text: #0f172a; /* Controls Event Text */
+        --calendar-radius: 6px;
+      }
+
+      .seamless-cal-wrapper {
         background-color: var(--calendar-base-bg);
         color: var(--calendar-base-text);
         border: 1px solid var(--calendar-base-border);
         font-family: inherit; /* Tells the wrapper to obey JavaScript font mapping changes instantly */
-        width: 100%; 
-        box-sizing: border-box; 
+        width: 100%;
+        box-sizing: border-box;
         padding: 12px;
         border-radius: var(--calendar-radius);
-    }
+      }
 
-    /* Force all header elements and buttons to respect the decoupled UI token */
-    #calendarHeaderLabel, .nav-btn, .cal-weekday-header div, .cal-controls h2 {
+      /* Force all header elements and buttons to respect the decoupled UI token */
+      #calendarHeaderLabel,
+      .nav-btn,
+      .cal-weekday-header div,
+      .cal-controls h2 {
         color: var(--calendar-base-text) !important;
-    }
+      }
 
-    /* Controls Bar Layout */
-    .cal-controls { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      margin-bottom: 16px; 
-      padding: 0 4px;
-    }
-    
-    .cal-controls h2 { 
-      margin: 0; 
-      font-size: 18px; 
-      font-weight: 700; 
-      letter-spacing: -0.025em;
-    }
-    
-    .nav-btn { 
-      background-color: transparent; 
-      border: 1px solid var(--calendar-base-border); 
-      padding: 6px 14px; 
-      border-radius: var(--calendar-radius); 
-      font-weight: 600; 
-      font-size: 12px; 
-      cursor: pointer; 
-      transition: all 0.15s ease; 
-    }
-    
-    .nav-btn:hover { 
-      background-color: var(--calendar-base-text);
-      color: var(--calendar-base-bg) !important; /* Invert text color on hover */
-    }
+      /* Controls Bar Layout */
+      .cal-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding: 0 4px;
+      }
 
-    /* Weekday Headers Grid Layout */
-    .cal-weekday-header { 
-      display: grid; 
-      grid-template-columns: repeat(7, 1fr); 
-      text-align: center; 
-      font-weight: 600; 
-      font-size: 11px; 
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      background-color: transparent; 
-      padding: 10px 0; 
-      border-radius: var(--calendar-radius) var(--calendar-radius) 0 0; 
-      border-bottom: 1px solid var(--calendar-base-border);
-      opacity: 0.8; /* Subtle dimming for header text */
-    }
-    
-    /* Main Day Matrix Grid Frame - Upgraded to track auto-sizing rows uniformly */
-    .month-grid { 
-      display: grid; 
-      grid-template-columns: repeat(7, 1fr); 
-      grid-auto-rows: minmax(115px, auto); 
-      background-color: var(--calendar-base-border); 
-      gap: 1px; 
-      border-radius: 0 0 var(--calendar-radius) var(--calendar-radius);
-      overflow: hidden;
-      border: 1px solid var(--calendar-base-border);
-      border-top: none;
-    }
-    
-    /* Base Grid Day Cells - Configured to allow natural vertical expansion */
-    .day-slot { 
-      background-color: var(--calendar-base-bg);
-      padding: 8px; 
-      display: flex; 
-      flex-direction: column; 
-      justify-content: flex-start; 
-      align-items: stretch;
-      box-sizing: border-box; 
-      position: relative; 
-      height: 100%; /* Guarantees background colors fill the expanded row height */
-      min-height: 115px;
-      transition: background-color 0.15s ease; 
-    }
-    
-    /* Using a soft, universal grey overlay for hover that works on both Light and Dark modes */
-    .day-slot:hover:not(.empty) {
-      background-color: rgba(128, 128, 128, 0.08); 
-    }
-    
-    .day-slot.empty { 
-      background-color: var(--calendar-base-bg); 
-      opacity: 0.4;
-      pointer-events: none; 
-    }
-    
-    /* Top header area of individual cells keeping number cleanly placed */
-    .day-num-wrapper {
-      display: flex;
-      justify-content: flex-end;
-      width: 100%;
-      margin-bottom: 8px;
-    }
+      .cal-controls h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+      }
 
-    .day-num { 
-      font-size: 11px; 
-      font-weight: 700; 
-      color: var(--calendar-accent); /* Linked directly to your accent color wheel */
-      text-align: right;
-    }
-    
-    .day-slot.is-today .day-num {
-      color: var(--calendar-base-bg); /* Auto-contrasts against the accent color bubble */
-      background-color: var(--calendar-accent); 
-      padding: 2px 6px;
-      border-radius: 9999px;
-    }
-    
-    /* No scrolling! Expands naturally downwards when multiple entries exist */
-    .day-events-container { 
-      display: flex; 
-      flex-direction: column; 
-      gap: 4px; 
-      flex-grow: 1; 
-      width: 100%;
-      overflow: visible;
-    }
-    
-    /* Event Nodes */
-    .day-event { 
-      background-color: var(--calendar-bg-event); 
-      color: var(--calendar-text); /* Strictly uses decoupled event text token */
-      border-left: 3px solid var(--calendar-primary); 
-      border-radius: 0 4px 4px 0; 
-      padding: 4px 6px; 
-      display: flex; 
-      flex-direction: column; 
-      line-height: 1.2; 
-      font-size: 10px; 
-      font-weight: 500;
-      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      cursor: pointer;
-      transition: transform 0.1s ease;
-    }
-    
-    .day-event:hover {
-      transform: translateY(-1px);
-      opacity: 0.95;
-    }
-    
-    .event-time-tag { 
-      font-size: 9px; 
-      font-weight: 700; 
-      color: var(--calendar-primary); 
-      margin-bottom: 1px; 
-    }
-    
-    /* Titles wrapped naturally inside the auto expanding blocks */
-    .event-title { 
-      color: var(--calendar-text); 
-      font-weight: 600;
-      white-space: normal; 
-      word-break: break-word;
-    }
-    
-    /* Private Security Filters */
-    .day-event.private { 
-      background-color: var(--calendar-base-border) !important; 
-      border-left-color: rgba(128,128,128,0.5) !important; 
-      opacity: 0.8;
-    }
-    
-    .day-event.private .event-time-tag { 
-      color: var(--calendar-base-text); 
-      opacity: 0.7;
-    }
-    
-    .day-event.private .event-title { 
-      color: var(--calendar-base-text); 
-      font-style: italic; 
-    }
+      .nav-btn {
+        background-color: transparent;
+        border: 1px solid var(--calendar-base-border);
+        padding: 6px 14px;
+        border-radius: var(--calendar-radius);
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
 
-    /* Agenda List View Styles Layout */
-    .agenda-list-wrapper { 
-      display: flex; 
-      flex-direction: column; 
-      gap: 8px; 
-      width: 100%; 
-      padding: 4px;
-      background-color: transparent;
-    }
-    .agenda-row { 
-      display: flex; 
-      align-items: center; 
-      background: var(--calendar-base-bg); 
-      border: 1px solid var(--calendar-base-border); 
-      padding: 10px 14px; 
-      border-radius: var(--calendar-radius); 
-      gap: 16px; 
-    }
-  </style>
-</head>
-<body>
+      .nav-btn:hover {
+        background-color: var(--calendar-base-text);
+        color: var(--calendar-base-bg) !important; /* Invert text color on hover */
+      }
 
-  <div id="canvas-widget-target">
-    <div style="padding: 30px; text-align: center; color: #94a3b8; font-family: sans-serif; font-size: 13px;">
-      Connecting to theme data stream...
+      /* Weekday Headers Grid Layout */
+      .cal-weekday-header {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        text-align: center;
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background-color: transparent;
+        padding: 10px 0;
+        border-radius: var(--calendar-radius) var(--calendar-radius) 0 0;
+        border-bottom: 1px solid var(--calendar-base-border);
+        opacity: 0.8; /* Subtle dimming for header text */
+      }
+
+      /* Main Day Matrix Grid Frame - Upgraded to track auto-sizing rows uniformly */
+      .month-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        grid-auto-rows: minmax(115px, auto);
+        background-color: var(--calendar-base-border);
+        gap: 1px;
+        border-radius: 0 0 var(--calendar-radius) var(--calendar-radius);
+        overflow: hidden;
+        border: 1px solid var(--calendar-base-border);
+        border-top: none;
+      }
+
+      /* Base Grid Day Cells - Configured to allow natural vertical expansion */
+      .day-slot {
+        background-color: var(--calendar-base-bg);
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
+        box-sizing: border-box;
+        position: relative;
+        height: 100%; /* Guarantees background colors fill the expanded row height */
+        min-height: 115px;
+        transition: background-color 0.15s ease;
+      }
+
+      /* Using a soft, universal grey overlay for hover that works on both Light and Dark modes */
+      .day-slot:hover:not(.empty) {
+        background-color: rgba(128, 128, 128, 0.08);
+      }
+
+      .day-slot.empty {
+        background-color: var(--calendar-base-bg);
+        opacity: 0.4;
+        pointer-events: none;
+      }
+
+      /* Top header area of individual cells keeping number cleanly placed */
+      .day-num-wrapper {
+        display: flex;
+        justify-content: flex-end;
+        width: 100%;
+        margin-bottom: 8px;
+      }
+
+      .day-num {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--calendar-accent); /* Linked directly to your accent color wheel */
+        text-align: right;
+      }
+
+      .day-slot.is-today .day-num {
+        color: var(--calendar-base-bg); /* Auto-contrasts against the accent color bubble */
+        background-color: var(--calendar-accent);
+        padding: 2px 6px;
+        border-radius: 9999px;
+      }
+
+      /* No scrolling! Expands naturally downwards when multiple entries exist */
+      .day-events-container {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex-grow: 1;
+        width: 100%;
+        overflow: visible;
+      }
+
+      /* Event Nodes */
+      .day-event {
+        background-color: var(--calendar-bg-event);
+        color: var(--calendar-text); /* Strictly uses decoupled event text token */
+        border-left: 3px solid var(--calendar-primary);
+        border-radius: 0 4px 4px 0;
+        padding: 4px 6px;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+        font-size: 10px;
+        font-weight: 500;
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+
+      .day-event:hover {
+        transform: translateY(-1px);
+        opacity: 0.95;
+      }
+
+      .event-time-tag {
+        font-size: 9px;
+        font-weight: 700;
+        color: var(--calendar-primary);
+        margin-bottom: 1px;
+      }
+
+      /* Titles wrapped naturally inside the auto expanding blocks */
+      .event-title {
+        color: var(--calendar-text);
+        font-weight: 600;
+        white-space: normal;
+        word-break: break-word;
+      }
+
+      /* Private Security Filters */
+      .day-event.private {
+        background-color: var(--calendar-base-border) !important;
+        border-left-color: rgba(128, 128, 128, 0.5) !important;
+        opacity: 0.8;
+      }
+
+      .day-event.private .event-time-tag {
+        color: var(--calendar-base-text);
+        opacity: 0.7;
+      }
+
+      .day-event.private .event-title {
+        color: var(--calendar-base-text);
+        font-style: italic;
+      }
+
+      /* Agenda List View Styles Layout */
+      .agenda-list-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        padding: 4px;
+        background-color: transparent;
+      }
+      .agenda-row {
+        display: flex;
+        align-items: center;
+        background: var(--calendar-base-bg);
+        border: 1px solid var(--calendar-base-border);
+        padding: 10px 14px;
+        border-radius: var(--calendar-radius);
+        gap: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas-widget-target">
+      <div
+        style="
+          padding: 30px;
+          text-align: center;
+          color: #94a3b8;
+          font-family: sans-serif;
+          font-size: 13px;
+        "
+      >
+        Connecting to theme data stream...
+      </div>
     </div>
-  </div>
 
-<script type="module">
-    // Parse the incoming User UID directly out of the frame URL query string
-    const urlParams = new URLSearchParams(window.location.search);
-    const widgetId = urlParams.get('id') || 'apsley_test_001';
+    <script type="module">
+      // Parse the incoming User UID directly out of the frame URL query string
+      const urlParams = new URLSearchParams(window.location.search)
+      const widgetId = urlParams.get('id') || 'apsley_test_001'
 
-    // Grab the live, unsaved email straight out of the iframe URL query string
-    const previewEmail = urlParams.get('calendarSourceEmail') || '';
+      // Grab the live, unsaved email straight out of the iframe URL query string
+      const previewEmail = urlParams.get('calendarSourceEmail') || ''
 
-    let currentViewDate = new Date();
-    let cachedSaaSPayload = null;
-    let activeViewMode = 'month'; 
+      let currentViewDate = new Date()
+      let cachedSaaSPayload = null
+      let activeViewMode = 'month'
 
-    // If there's a preview email in the URL, forward it to the cloud function endpoint parameter stack
-    let API_ENDPOINT = `https://us-central1-seamlesscal.cloudfunctions.net/getWidgetCalendar?id=${widgetId}`;
-    if (previewEmail) {
-        API_ENDPOINT += `&calendarSourceEmail=${encodeURIComponent(previewEmail)}`;
-    }
+      // If there's a preview email in the URL, forward it to the cloud function endpoint parameter stack
+      let API_ENDPOINT = `https://us-central1-seamlesscal.cloudfunctions.net/getWidgetCalendar?id=${widgetId}`
+      if (previewEmail) {
+        API_ENDPOINT += `&calendarSourceEmail=${encodeURIComponent(previewEmail)}`
+      }
 
-    async function initializeWidgetEngine() {
+      async function initializeWidgetEngine() {
         try {
-            const localUrlParams = new URLSearchParams(window.location.search);
-            
+          const localUrlParams = new URLSearchParams(window.location.search)
+
+          // 🆕 FIX: Ensure both evaluation tokens are defined safely within the block scope
+          const isMockMode = localUrlParams.get('mockData') === 'true'
+          const previewEmail = localUrlParams.get('calendarSourceEmail') || ''
+
+          let data = {}
+
+          if (isMockMode) {
+            data = {
+              settings: {},
+              events: generateMockSandboxEvents(),
+            }
+          } else {
             // Fetch the base data stream payload from the cloud function
-            const response = await fetch(API_ENDPOINT);
-            const data = await response.json();
+            const response = await fetch(API_ENDPOINT)
+            const jsonResponse = await response.json()
 
-            cachedSaaSPayload = data;
-            if (!cachedSaaSPayload.events) cachedSaaSPayload.events = [];
+            // If the payload has a root .data wrapper object, grab that safely.
+            if (jsonResponse && jsonResponse.data) {
+              data = jsonResponse.data
+            } else {
+              data = jsonResponse || {}
+            }
+          }
 
-            // Get settings from URL params or fallback to the DB values
-            const liveSettings = {
-                baseTheme: localUrlParams.get('baseTheme') || data.settings?.baseTheme || 'dark',
-                primaryColor: localUrlParams.get('primaryColor') || data.settings?.primaryColor || '#1e6b7b',
-                accentColor: localUrlParams.get('accentColor') || data.settings?.accentColor || '#f0ad4e',
-                eventBgColor: localUrlParams.get('eventBgColor') || data.settings?.eventBgColor || '#eef7f9',
-                textColor: localUrlParams.get('textColor') || data.settings?.textColor || '#0f172a',
-                headerTextColor: localUrlParams.get('headerTextColor') || data.settings?.headerTextColor || '#ffffff',
-                defaultView: localUrlParams.get('defaultView') || data.settings?.defaultView || 'month',
-                fontFamily: localUrlParams.get('fontFamily') || data.settings?.fontFamily || 'sans-serif',
-                borderRadius: localUrlParams.get('borderRadius') || data.settings?.borderRadius || '6px',
-                agendaLimit: parseInt(localUrlParams.get('agendaLimit') || data.settings?.agendaLimit || 3)
-            };
+          // Global fallback safety assignment barriers
+          if (!data.events) data.events = []
+          if (!data.settings) data.settings = {}
 
-            // Update global tracking states with resolved choices
-            activeViewMode = liveSettings.defaultView;
+          cachedSaaSPayload = data
 
-            renderSkeletonStructure();
-            applyDynamicThemeTokens(liveSettings);
-            routeActiveView(activeViewMode);
+          // Safely unpack parameters using optional chaining (?.) to prevent errors
+          const liveSettings = {
+            baseTheme: localUrlParams.get('baseTheme') || data.settings?.baseTheme || 'dark',
+            primaryColor:
+              localUrlParams.get('primaryColor') || data.settings?.primaryColor || '#1e6b7b',
+            accentColor:
+              localUrlParams.get('accentColor') || data.settings?.accentColor || '#f0ad4e',
+            eventBgColor:
+              localUrlParams.get('eventBgColor') || data.settings?.eventBgColor || '#eef7f9',
+            textColor: localUrlParams.get('textColor') || data.settings?.textColor || '#0f172a',
+            headerTextColor:
+              localUrlParams.get('headerTextColor') || data.settings?.headerTextColor || '#ffffff',
+            defaultView: localUrlParams.get('defaultView') || data.settings?.defaultView || 'month',
+            fontFamily:
+              localUrlParams.get('fontFamily') || data.settings?.fontFamily || 'sans-serif',
+            borderRadius:
+              localUrlParams.get('borderRadius') || data.settings?.borderRadius || '6px',
+            agendaLimit: parseInt(
+              localUrlParams.get('agendaLimit') || data.settings?.agendaLimit || 3,
+            ),
+          }
 
+          // Update global tracking states with resolved choices
+          activeViewMode = liveSettings.defaultView
+
+          renderSkeletonStructure()
+          applyDynamicThemeTokens(liveSettings)
+          routeActiveView(activeViewMode)
         } catch (err) {
-            console.error("Widget initialization crash:", err);
-            document.getElementById('canvas-widget-target').innerHTML = `<div style="color:#ef4444; padding:20px; font-family:sans-serif;">Connection Timeout.</div>`;
+          console.error('Widget initialization crash details:', err)
+          document.getElementById('canvas-widget-target').innerHTML =
+            `<div style="color:#ef4444; padding:20px; font-family:sans-serif;">Connection Timeout.</div>`
         }
-    }
+      }
 
-    function renderSkeletonStructure() {
-      const target = document.getElementById('canvas-widget-target');
-      if (!target) return;
+      function renderSkeletonStructure() {
+        const target = document.getElementById('canvas-widget-target')
+        if (!target) return
 
-      // Build the complete calendar layout frame right inside your target wrapper
-      target.innerHTML = `
+        // Build the complete calendar layout frame right inside your target wrapper
+        target.innerHTML = `
         <section class="seamless-cal-wrapper">
           <div class="cal-controls">
             <button id="prevBtn" class="nav-btn">&lt; Prev</button>
@@ -322,205 +366,225 @@
           </div>
           <div id="widgetGridBody" class="month-grid"></div>
         </section>
-      `;
+      `
 
-      // Attach navigation events smoothly
-      document.getElementById('prevBtn').onclick = () => handleNavigation(-1);
-      document.getElementById('nextBtn').onclick = () => handleNavigation(1);
-    }
+        // Attach navigation events smoothly
+        document.getElementById('prevBtn').onclick = () => handleNavigation(-1)
+        document.getElementById('nextBtn').onclick = () => handleNavigation(1)
+      }
 
-    function applyDynamicThemeTokens(settings) {
-        const root = document.documentElement;
-        const target = document.getElementById('canvas-widget-target');
-        
+      function applyDynamicThemeTokens(settings) {
+        const root = document.documentElement
+        const target = document.getElementById('canvas-widget-target')
+
         // 1. Process Base Theme & Header Text
-        const baseTheme = settings.baseTheme || 'dark';
-        let baseBg = '#0f172a'; // Default Dark
-        let baseText = settings.headerTextColor || '#f8fafc'; // Default to user's choice or light text
-        let baseBorder = '#1e293b';
+        const baseTheme = settings.baseTheme || 'dark'
+        let baseBg = '#0f172a' // Default Dark
+        let baseText = settings.headerTextColor || '#f8fafc' // Default to user's choice or light text
+        let baseBorder = '#1e293b'
 
         if (baseTheme === 'light') {
-            baseBg = '#ffffff';
-            baseText = (settings.headerTextColor && settings.headerTextColor !== '#ffffff') ? settings.headerTextColor : '#0f172a';
-            baseBorder = '#e2e8f0';
+          baseBg = '#ffffff'
+          baseText =
+            settings.headerTextColor && settings.headerTextColor !== '#ffffff'
+              ? settings.headerTextColor
+              : '#0f172a'
+          baseBorder = '#e2e8f0'
         } else if (baseTheme === 'transparent') {
-            baseBg = 'transparent';
-            baseText = settings.headerTextColor || '#ffffff';
-            baseBorder = 'rgba(128, 128, 128, 0.2)';
+          baseBg = 'transparent'
+          baseText = settings.headerTextColor || '#ffffff'
+          baseBorder = 'rgba(128, 128, 128, 0.2)'
         }
 
-        root.style.setProperty('--calendar-base-bg', baseBg);
-        root.style.setProperty('--calendar-base-text', baseText);
-        root.style.setProperty('--calendar-base-border', baseBorder);
+        root.style.setProperty('--calendar-base-bg', baseBg)
+        root.style.setProperty('--calendar-base-text', baseText)
+        root.style.setProperty('--calendar-base-border', baseBorder)
 
         // 2. Process Custom Colors
-        root.style.setProperty('--calendar-primary', settings.primaryColor || '#1e6b7b');
-        root.style.setProperty('--calendar-accent', settings.accentColor || '#f0ad4e');
-        root.style.setProperty('--calendar-bg-event', settings.eventBgColor || '#eef7f9');
-        root.style.setProperty('--calendar-text', settings.textColor || '#0f172a');
-        
+        root.style.setProperty('--calendar-primary', settings.primaryColor || '#1e6b7b')
+        root.style.setProperty('--calendar-accent', settings.accentColor || '#f0ad4e')
+        root.style.setProperty('--calendar-bg-event', settings.eventBgColor || '#eef7f9')
+        root.style.setProperty('--calendar-text', settings.textColor || '#0f172a')
+
         // 3. Process Radius & Fonts
-        let radius = settings.borderRadius || '6px';
+        let radius = settings.borderRadius || '6px'
         if (!radius.endsWith('px') && !radius.endsWith('rem') && !radius.endsWith('%')) {
-            radius = radius + 'px';
+          radius = radius + 'px'
         }
-        root.style.setProperty('--calendar-radius', radius);
+        root.style.setProperty('--calendar-radius', radius)
 
-        let mappedFont = 'sans-serif';
-        const chosenFont = settings.fontFamily || 'sans-serif';
-        if (chosenFont === 'serif') mappedFont = "'Playfair Display', serif";
-        if (chosenFont === 'mono') mappedFont = "'Space Mono', monospace";
-        if (chosenFont === 'sans-serif') mappedFont = "system-ui, -apple-system, 'Inter', sans-serif";
-        
+        let mappedFont = 'sans-serif'
+        const chosenFont = settings.fontFamily || 'sans-serif'
+        if (chosenFont === 'serif') mappedFont = "'Playfair Display', serif"
+        if (chosenFont === 'mono') mappedFont = "'Space Mono', monospace"
+        if (chosenFont === 'sans-serif')
+          mappedFont = "system-ui, -apple-system, 'Inter', sans-serif"
+
         if (target) {
-            target.style.fontFamily = mappedFont;
+          target.style.fontFamily = mappedFont
         }
-    }
+      }
 
-    function handleNavigation(direction) {
+      function handleNavigation(direction) {
         if (activeViewMode === 'month') {
-            currentViewDate.setMonth(currentViewDate.getMonth() + direction);
-            renderMonthGrid();
+          currentViewDate.setMonth(currentViewDate.getMonth() + direction)
+          renderMonthGrid()
         } else {
-            currentViewDate.setMonth(currentViewDate.getMonth() + direction);
-            renderAgendaList();
+          currentViewDate.setMonth(currentViewDate.getMonth() + direction)
+          renderAgendaList()
         }
-    }
-
-    function routeActiveView(viewMode) {
-      if (viewMode === 'agenda') {
-        renderAgendaList();
-      } else {
-        renderMonthGrid();
-      }
-    }
-
-    function renderMonthGrid() {
-      const grid = document.getElementById('widgetGridBody');
-      const label = document.getElementById('calendarHeaderLabel');
-      const headerDays = document.getElementById('gridHeaderDays');
-      
-      if (!grid || !label) return;
-      if (headerDays) headerDays.style.display = 'grid';
-      grid.style.gridTemplateColumns = 'repeat(7, 1fr)';
-
-      const year = currentViewDate.getFullYear();
-      const month = currentViewDate.getMonth();
-
-      label.innerText = currentViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-
-      const firstDay = new Date(year, month, 1).getDay();
-      const padding = firstDay === 0 ? 6 : firstDay - 1;
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-      grid.innerHTML = '';
-
-      for (let i = 0; i < padding; i++) {
-        const pad = document.createElement('div');
-        pad.className = 'day-slot empty';
-        grid.appendChild(pad);
       }
 
-      const today = new Date();
+      function routeActiveView(viewMode) {
+        if (viewMode === 'agenda') {
+          renderAgendaList()
+        } else {
+          renderMonthGrid()
+        }
+      }
 
-      for (let day = 1; day <= daysInMonth; day++) {
-        const slot = document.createElement('div');
-        
-        const isCurrentDay = (
-          day === today.getDate() && 
-          month === today.getMonth() && 
-          year === today.getFullYear()
-        );
-        
-        slot.className = `day-slot ${isCurrentDay ? 'is-today' : ''}`;
-        
-        // Wrap the day number neatly to avoid layout collisions
-        const numWrapper = document.createElement('div');
-        numWrapper.className = 'day-num-wrapper';
-        
-        const num = document.createElement('span');
-        num.className = 'day-num';
-        num.innerText = day;
-        
-        numWrapper.appendChild(num);
-        slot.appendChild(numWrapper);
+      function renderMonthGrid() {
+        const grid = document.getElementById('widgetGridBody')
+        const label = document.getElementById('calendarHeaderLabel')
+        const headerDays = document.getElementById('gridHeaderDays')
 
-        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const dayEvents = cachedSaaSPayload.events.filter(e => e.start.dateTime && e.start.dateTime.startsWith(dateKey));
+        if (!grid || !label) return
+        if (headerDays) headerDays.style.display = 'grid'
+        grid.style.gridTemplateColumns = 'repeat(7, 1fr)'
 
-        const container = document.createElement('div');
-        container.className = 'day-events-container';
+        const year = currentViewDate.getFullYear()
+        const month = currentViewDate.getMonth()
 
-        dayEvents.forEach(event => {
-          const evDiv = document.createElement('div');
-          evDiv.className = `day-event ${event.isPrivate ? 'private' : ''}`;
-          
-          let timeLabel = '10:00 AM';
-          if (event.start && event.start.dateTime && !event.start.isAllDay) {
-            const dateObj = new Date(event.start.dateTime);
-            timeLabel = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-          }
+        label.innerText = currentViewDate.toLocaleString('en-GB', {
+          month: 'long',
+          year: 'numeric',
+        })
 
-          if (!event.isPrivate) {
-            evDiv.style.color = 'var(--calendar-text)';
-          }
+        const firstDay = new Date(year, month, 1).getDay()
+        const padding = firstDay === 0 ? 6 : firstDay - 1
+        const daysInMonth = new Date(year, month + 1, 0).getDate()
 
-          evDiv.innerHTML = `
+        grid.innerHTML = ''
+
+        for (let i = 0; i < padding; i++) {
+          const pad = document.createElement('div')
+          pad.className = 'day-slot empty'
+          grid.appendChild(pad)
+        }
+
+        const today = new Date()
+
+        for (let day = 1; day <= daysInMonth; day++) {
+          const slot = document.createElement('div')
+
+          const isCurrentDay =
+            day === today.getDate() && month === today.getMonth() && year === today.getFullYear()
+
+          slot.className = `day-slot ${isCurrentDay ? 'is-today' : ''}`
+
+          // Wrap the day number neatly to avoid layout collisions
+          const numWrapper = document.createElement('div')
+          numWrapper.className = 'day-num-wrapper'
+
+          const num = document.createElement('span')
+          num.className = 'day-num'
+          num.innerText = day
+
+          numWrapper.appendChild(num)
+          slot.appendChild(numWrapper)
+
+          const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+          const dayEvents = cachedSaaSPayload.events.filter(
+            (e) => e.start.dateTime && e.start.dateTime.startsWith(dateKey),
+          )
+
+          const container = document.createElement('div')
+          container.className = 'day-events-container'
+
+          dayEvents.forEach((event) => {
+            const evDiv = document.createElement('div')
+            evDiv.className = `day-event ${event.isPrivate ? 'private' : ''}`
+
+            let timeLabel = '10:00 AM'
+            if (event.start && event.start.dateTime && !event.start.isAllDay) {
+              const dateObj = new Date(event.start.dateTime)
+              timeLabel = dateObj.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              })
+            }
+
+            if (!event.isPrivate) {
+              evDiv.style.color = 'var(--calendar-text)'
+            }
+
+            evDiv.innerHTML = `
             <span class="event-time-tag" style="${!event.isPrivate ? `color: var(--calendar-text); opacity: 0.8;` : ''}">${timeLabel}</span>
             <span class="event-title" style="${!event.isPrivate ? `color: var(--calendar-text);` : ''}">${event.summary}</span>
-          `;
-          container.appendChild(evDiv);
-        });
+          `
+            container.appendChild(evDiv)
+          })
 
-        slot.appendChild(container);
-        grid.appendChild(slot);
+          slot.appendChild(container)
+          grid.appendChild(slot)
+        }
+
+        sendHeightToParent()
       }
 
-      sendHeightToParent();
-    }
+      function renderAgendaList() {
+        const grid = document.getElementById('widgetGridBody')
+        const label = document.getElementById('calendarHeaderLabel')
+        const headerDays = document.getElementById('gridHeaderDays')
 
-    function renderAgendaList() {
-  const grid = document.getElementById('widgetGridBody');
-  const label = document.getElementById('calendarHeaderLabel');
-  const headerDays = document.getElementById('gridHeaderDays');
-  
-  if (!grid || !label) return;
-  if (headerDays) headerDays.style.display = 'none';
+        if (!grid || !label) return
+        if (headerDays) headerDays.style.display = 'none'
 
-  label.innerText = "Upcoming Availability Stream";
-  grid.style.gridTemplateColumns = '1fr';
-  grid.innerHTML = '<div class="agenda-list-wrapper"></div>';
-  
-  const wrapper = grid.querySelector('.agenda-list-wrapper');
-  
-  // 1. Sort events chronologically so the closest date appears first
-  const sortedEvents = [...cachedSaaSPayload.events].sort((a, b) => {
-    return new Date(a.start?.dateTime || 0) - new Date(b.start?.dateTime || 0);
-  });
+        label.innerText = 'Upcoming Availability Stream'
+        grid.style.gridTemplateColumns = '1fr'
+        grid.innerHTML = '<div class="agenda-list-wrapper"></div>'
 
-  // 2. Intercept our customization limit setting dynamically out of URL variables
-  const urlParams = new URLSearchParams(window.location.search);
-  const limit = parseInt(urlParams.get('agendaLimit') || cachedSaaSPayload.settings?.agendaLimit || 3);
+        const wrapper = grid.querySelector('.agenda-list-wrapper')
 
-  // 3. Slice and render elements smoothly
-  sortedEvents.slice(0, limit).forEach(event => {
-    let dateLabel = 'Upcoming';
-    let timeLabel = 'All Day Event';
+        // 1. Sort events chronologically so the closest date appears first
+        const sortedEvents = [...cachedSaaSPayload.events].sort((a, b) => {
+          return new Date(a.start?.dateTime || 0) - new Date(b.start?.dateTime || 0)
+        })
 
-    if (event.start && event.start.dateTime) {
-      const dateObj = new Date(event.start.dateTime);
-      
-      // Build an elegant date label: e.g., "Tue, 2 Jun"
-      dateLabel = dateObj.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-      
-      if (!event.start.isAllDay) {
-        timeLabel = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-      }
-    }
+        // 2. Intercept our customization limit setting dynamically out of URL variables
+        const urlParams = new URLSearchParams(window.location.search)
+        const limit = parseInt(
+          urlParams.get('agendaLimit') || cachedSaaSPayload.settings?.agendaLimit || 3,
+        )
 
-    const row = document.createElement('div');
-    row.className = 'agenda-row';
-    row.innerHTML = `
+        // 3. Slice and render elements smoothly
+        sortedEvents.slice(0, limit).forEach((event) => {
+          let dateLabel = 'Upcoming'
+          let timeLabel = 'All Day Event'
+
+          if (event.start && event.start.dateTime) {
+            const dateObj = new Date(event.start.dateTime)
+
+            // Build an elegant date label: e.g., "Tue, 2 Jun"
+            dateLabel = dateObj.toLocaleDateString('en-GB', {
+              weekday: 'short',
+              day: 'numeric',
+              month: 'short',
+            })
+
+            if (!event.start.isAllDay) {
+              timeLabel = dateObj.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              })
+            }
+          }
+
+          const row = document.createElement('div')
+          row.className = 'agenda-row'
+          row.innerHTML = `
       <div style="font-weight:700; color:var(--calendar-accent); font-size:11px; min-width:85px; font-family:inherit; text-transform:uppercase; tracking-wide">
         ${dateLabel}
       </div>
@@ -528,27 +592,42 @@
         <span class="event-time-tag" style="${!event.isPrivate ? `color: var(--calendar-text); opacity: 0.8;` : ''}">${timeLabel}</span>
         <span class="event-title" style="${!event.isPrivate ? `color: var(--calendar-text);` : ''}">${event.summary}</span>
       </div>
-    `;
-    wrapper.appendChild(row);
-  });
+    `
+          wrapper.appendChild(row)
+        })
 
-  sendHeightToParent();
-}
-
-    function sendHeightToParent() {
+        sendHeightToParent()
+      }
+      const resizeObserver = new ResizeObserver((entries) => {
+        for (let entry of entries) {
+          const currentHeight = entry.target.scrollHeight
+          window.parent.postMessage(
+            {
+              type: 'seamlesscal-resize',
+              height: currentHeight,
+            },
+            '*',
+          )
+        }
+      })
+      resizeObserver.observe(document.body)
+      function sendHeightToParent() {
         setTimeout(() => {
-            const wrapper = document.querySelector('.seamless-cal-wrapper');
-            if (wrapper) {
-                const computedHeight = wrapper.offsetHeight + 24;
-                window.parent.postMessage({ 
-                    type: 'SEAMLESSCAL_RESIZE', 
-                    height: computedHeight 
-                }, '*');
-            }
-        }, 60);
-    }
+          const wrapper = document.querySelector('.seamless-cal-wrapper')
+          if (wrapper) {
+            const computedHeight = wrapper.offsetHeight + 24
+            window.parent.postMessage(
+              {
+                type: 'SEAMLESSCAL_RESIZE',
+                height: computedHeight,
+              },
+              '*',
+            )
+          }
+        }, 60)
+      }
 
-    initializeWidgetEngine();
-  </script>
-</body>
+      initializeWidgetEngine()
+    </script>
+  </body>
 </html>

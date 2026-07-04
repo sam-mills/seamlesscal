@@ -31,10 +31,7 @@
     }
 
     // 3. DYNAMIC DOMAIN CONFIGURATOR (NEW)
-    // Automatically flips between localhost and your real cloud production hosting site domain cleanly
-    const BASE_URL = window.location.origin.includes('localhost')
-      ? 'http://localhost:5173'
-      : 'https://your-production-app.web.app' // Change this string snippet to your live URL on deployment
+    const BASE_URL = 'https://seamlesscal.netlify.app'
 
     // 4. FORWARD ACTIVE PASSTHROUGH PARAMETERS (NEW)
     // Extracts any real-time, unsaved dashboard updates sitting in the parent browser address layer
@@ -71,8 +68,7 @@
     if (event.data && event.data.type === 'SEAMLESSCAL_RESIZE') {
       const dynamicFrame = document.getElementById('seamlesscal-canvas-frame')
       if (dynamicFrame && event.data.height) {
-        // Instantly expand or contract the frame wrapper dynamically
-        dynamicFrame.style.height = event.data.height + 'px'
+        dynamicFrame.style.height = event.data.height + 4 + 'px'
       }
     }
   })

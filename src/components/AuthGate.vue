@@ -12,6 +12,47 @@
         </p>
       </div>
 
+      <div
+        v-if="status.message"
+        :class="[
+          'p-3 rounded-lg text-xs font-semibold tracking-wide border animate-fade-in flex items-start gap-2.5',
+          status.type === 'success'
+            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+            : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400',
+        ]"
+      >
+        <svg
+          v-if="status.type === 'error'"
+          class="w-4 h-4 shrink-0 mt-0.5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
+        </svg>
+        <svg
+          v-else
+          class="w-4 h-4 shrink-0 mt-0.5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+
+        <div>{{ status.message }}</div>
+      </div>
+
       <div class="space-y-3">
         <Button
           type="button"
@@ -89,7 +130,7 @@
 
       <div class="text-center">
         <button
-          @click="isSignUp = !isSignUp"
+          @click="toggleAuthMode"
           class="text-xs text-zinc-400 hover:text-white transition-all underline cursor-pointer"
         >
           {{
@@ -102,13 +143,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { auth, db } from '@/firebase'
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  GoogleAuthProvider, // 🆕 Import Google OAuth provider module
-  signInWithPopup, // 🆕 Import secure window authentication popup tool
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { Card } from '@/components/ui/card'
@@ -120,24 +161,42 @@ const password = ref('')
 const isSignUp = ref(false)
 const loading = ref(false)
 
+// Reactive inline state alerts map configuration
+const status = reactive({
+  message: '',
+  type: 'success',
+})
+
+let autoClearTimeout = null
+
 const emit = defineEmits(['auth-success'])
 
-// 🆕 HIGH-PERFORMANCE GOOGLE SIGN-IN INTERACTION LOGIC
+// Clear alerts when swapping between Login and Registration views
+function toggleAuthMode() {
+  if (autoClearTimeout) clearTimeout(autoClearTimeout)
+  status.message = ''
+  isSignUp.value = !isSignUp.value
+}
+
 async function handleGoogleSignIn() {
+  if (autoClearTimeout) clearTimeout(autoClearTimeout)
+  status.message = ''
   loading.value = true
+
   const provider = new GoogleAuthProvider()
   try {
     const result = await signInWithPopup(auth, provider)
     const user = result.user
 
-    // Fetch snapshot profile check parameters to avoid overwriting existing tenants
-    const docRef = doc(db, 'widgets', user.uid)
+    const customWidgetId = `widget_${user.uid.slice(0, 8)}_main_001`
+    const docRef = doc(db, 'widgets', customWidgetId)
     const docSnap = await getDoc(docRef)
 
-    // Provision default structure tokens *only* if the account has never logged in before
     if (!docSnap.exists()) {
+      // 1. Provision default widget design options
       await setDoc(docRef, {
-        userId: user.uid,
+        widgetId: customWidgetId,
+        ownerUid: user.uid,
         settings: {
           layoutMode: 'elastic',
           defaultView: 'month',
@@ -149,26 +208,53 @@ async function handleGoogleSignIn() {
           borderRadius: '6px',
         },
       })
+
+      // 2. Provision matching user profile documentation architecture
+      const userProfileRef = doc(db, 'users', user.uid)
+      await setDoc(userProfileRef, {
+        uid: user.uid,
+        displayName: user.displayName || '',
+        timezone: 'Europe/London',
+        logoUrl: user.photoURL || '',
+        planTier: 'free',
+        apiCount: 0,
+        createdAt: new Date().toISOString(),
+      })
     }
-    emit('auth-success', user.uid)
+
+    status.type = 'success'
+    status.message = 'Authentication verified! Redirecting to creator engine...'
+
+    autoClearTimeout = setTimeout(() => {
+      status.message = ''
+      emit('auth-success', user.uid)
+    }, 2000)
   } catch (err) {
     console.error('Google cross-origin authentication loop failure:', err)
-    alert(err.message)
+    status.type = 'error'
+    status.message = err.message
   } finally {
     loading.value = false
   }
 }
 
-// STANDARD EMAIL HANDLER FLOW
 async function handleAuthSubmit() {
+  if (autoClearTimeout) clearTimeout(autoClearTimeout)
+  status.message = ''
   loading.value = true
+
   try {
     if (isSignUp.value) {
       const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value)
       const user = userCredential.user
 
-      await setDoc(doc(db, 'widgets', user.uid), {
-        userId: user.uid,
+      // 1. FIRST: Generate the standard multi-tenant dynamic identifier context
+      const customWidgetId = `widget_${user.uid.slice(0, 8)}_main_001`
+
+      // 2. SECOND: Map out and link the initialization parameters safely
+      await setDoc(doc(db, 'widgets', customWidgetId), {
+        widgetId: customWidgetId,
+        ownerUid: user.uid,
         settings: {
           layoutMode: 'elastic',
           defaultView: 'month',
@@ -180,14 +266,53 @@ async function handleAuthSubmit() {
           borderRadius: '6px',
         },
       })
-      emit('auth-success', user.uid)
+
+      // 3. THIRD: Provision matching user profile documentation architecture
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        displayName: user.displayName || '',
+        timezone: 'Europe/London',
+        logoUrl: user.photoURL || '',
+        planTier: 'free', // Can scale seamlessly into 'pro' or 'agency' later!
+        apiCount: 0, // Changing from a locking constraint to a safe operational metrics counter
+        maxWidgetsAllowed: 1, // Free/Pro get 1, Agency updates this database token value dynamically to 10
+        isWhiteLabeled: false, // Free keeps "Powered by SeamlessCal" badge string footer active
+        createdAt: new Date().toISOString(),
+      })
+
+      status.type = 'success'
+      status.message = 'Profile created successfully! Synchronizing system sandbox...'
+
+      autoClearTimeout = setTimeout(() => {
+        status.message = ''
+        emit('auth-success', user.uid)
+      }, 2000)
     } else {
       const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
-      emit('auth-success', userCredential.user.uid)
+
+      status.type = 'success'
+      status.message = 'Welcome back! Launching workspace customization dashboard...'
+
+      autoClearTimeout = setTimeout(() => {
+        status.message = ''
+        emit('auth-success', userCredential.user.uid)
+      }, 2000)
     }
   } catch (err) {
     console.error('Authentication gate error details:', err)
-    alert(err.message)
+    status.type = 'error'
+
+    const errorMessages = {
+      'auth/wrong-password':
+        'Invalid credentials. Please verify your password entry and try again.',
+      'auth/user-not-found': 'No account detected with this email address. Please sign up instead.',
+      'auth/email-already-in-use':
+        'This email address is already registered. Please sign in instead.',
+      'auth/weak-password': 'Security Policy Rule: Password must be at least 6 characters long.',
+    }
+
+    // Assign mapped exception message or fallback cleanly to original context
+    status.message = errorMessages[err.code] ?? err.message
   } finally {
     loading.value = false
   }

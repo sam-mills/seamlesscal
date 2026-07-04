@@ -39,7 +39,7 @@ exports.getWidgetCalendar = onRequest({ cors: true, invoker: 'public' }, async (
     fontFamily: 'sans-serif',
     maxWidth: '1100px',
     borderRadius: '6px',
-    agendaLimit: 3, // <-- ADDED: Baseline fallback default track
+    agendaLimit: 3,
   }
 
   try {
@@ -66,8 +66,6 @@ exports.getWidgetCalendar = onRequest({ cors: true, invoker: 'public' }, async (
       fontFamily: req.query.fontFamily || widgetSettings.fontFamily || 'sans-serif',
       maxWidth: req.query.maxWidth || widgetSettings.maxWidth || '1100px',
       borderRadius: req.query.borderRadius || widgetSettings.borderRadius || '6px',
-
-      // ADDED: Capture live configuration updates or fallback securely down to stored profiles
       agendaLimit: parseInt(req.query.agendaLimit || widgetSettings.agendaLimit || 3, 10),
     })
 
@@ -75,13 +73,26 @@ exports.getWidgetCalendar = onRequest({ cors: true, invoker: 'public' }, async (
     const calendarId =
       req.query.calendarSourceEmail || rawWidgetData.calendarSourceEmail || 'primary'
 
+    // 🆕 FETCH PLAN TIER: Check the owner's plan so the frontend knows whether to hide the watermark
+    let activePlanTier = 'free'
+    if (ownerUid) {
+      const userDoc = await db.collection('users').doc(ownerUid).get()
+      if (userDoc.exists) {
+        activePlanTier = userDoc.data().planTier || 'free'
+      }
+    }
+
     // 2. CHECK INTERNAL CLOUD MEMORY CACHE
     const cacheKey = `${widgetId}_${calendarId}`
     const cachedData = apiCache.get(cacheKey)
 
     if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION_MS) {
+      // 🏁 CDN CACHE SHIELD: Instruct Firebase edge servers to cache this response for 5 minutes
+      res.set('Cache-Control', 'public, max-age=300, s-maxage=300')
+
       return res.json({
         source: 'cache',
+        planTier: activePlanTier, // Inject the tier
         settings: compiledSettings,
         events: cachedData.payload,
       })
@@ -197,8 +208,13 @@ exports.getWidgetCalendar = onRequest({ cors: true, invoker: 'public' }, async (
     }
 
     // 5. SEND CLEAN DATA BACK
+
+    // 🏁 CDN CACHE SHIELD: Instruct Firebase edge servers to cache this response for 5 minutes
+    res.set('Cache-Control', 'public, max-age=300, s-maxage=300')
+
     return res.json({
       source: oauth2Client ? 'live_oauth_api' : 'live_public_api_fallback',
+      planTier: activePlanTier, // Inject the tier
       settings: compiledSettings,
       events: sanitizedEvents,
     })
