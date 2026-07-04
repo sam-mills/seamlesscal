@@ -436,7 +436,7 @@
             <code class="text-[11px] font-mono text-zinc-300 block whitespace-pre"
               >&lt;div id="seamlesscal-widget" data-widget-id="{{
                 activeWidgetId
-              }}"&gt;&lt;/div&gt;&#10;&lt;script src="https://seamlesscal.netlify.app/widget.js"
+              }}"&gt;&lt;/div&gt;&#10;&lt;script src="https://cdn.seamlesscal.com/widget.js"
               defer&gt;&lt;/script&gt;</code
             >
           </div>
@@ -695,7 +695,7 @@ async function saveWidgetSettings() {
 }
 
 function copyEmbedCode() {
-  const embedString = `<div id="seamlesscal-widget" data-widget-id="${activeWidgetId.value}"></div>\n<script src="https://seamlesscal.netlify.app/widget.js" defer><\/script>`
+  const embedString = `<div id="seamlesscal-widget" data-widget-id="${activeWidgetId.value}"></div>\n<script src="https://cdn.seamlesscal.com/widget.js" defer><\/script>`
   navigator.clipboard.writeText(embedString).then(() => {
     copied.value = true
     setTimeout(() => {
