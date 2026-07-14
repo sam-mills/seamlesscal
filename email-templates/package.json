@@ -1,0 +1,22 @@
+{
+  "name": "email-templates",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node compiler.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@vue-email/components": "^0.0.21",
+    "@vue-email/render": "^0.0.9",
+    "vue": "^3.5.39"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.0"
+  }
+}

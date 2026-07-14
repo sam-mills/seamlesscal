@@ -130,8 +130,42 @@
             v-model="widgetName"
             type="text"
             placeholder="e.g. Homepage Booking Calendar"
-            class="w-full text-sm rounded-md border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+            class="w-full text-sm rounded-md border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
           />
+        </div>
+
+        <div class="space-y-2">
+          <Label
+            class="text-sm font-semibold tracking-wide text-slate-900 dark:text-zinc-100 flex items-center justify-between"
+          >
+            <span>Booking Engine Status</span>
+            <span
+              v-if="userPlanTier === 'free'"
+              class="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded font-bold"
+              >PRO</span
+            >
+          </Label>
+          <select
+            :value="userPlanTier === 'free' ? 'paused' : bookingMode"
+            @change="(e) => (bookingMode = e.target.value)"
+            @click="userPlanTier === 'free' ? (showUpgradeModal = true) : null"
+            class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+          >
+            <option value="paused" :disabled="userPlanTier !== 'free'">
+              View-Only Calendar Display Mode {{ userPlanTier === 'free' ? '(Active)' : '' }}
+            </option>
+            <option value="auto" :disabled="userPlanTier === 'free'">
+              Auto-Confirm Engine (Instantly Syncs) {{ userPlanTier === 'free' ? '🔒' : '' }}
+            </option>
+            <option value="request" :disabled="userPlanTier === 'free'">
+              Manual Request Hold Queue (Dashboard Approvals)
+              {{ userPlanTier === 'free' ? '🔒' : '' }}
+            </option>
+          </select>
+          <p class="text-[11px] text-muted-foreground">
+            Free plans display interactive availability streams. Upgrading to Pro activates
+            transactional workflows and sync pipelines.
+          </p>
         </div>
 
         <div class="space-y-2">
@@ -471,7 +505,7 @@
       >
         <div class="flex justify-between items-center text-xs">
           <span class="text-slate-700 dark:text-zinc-300 font-medium">Professional Tier Plan</span>
-          <span class="text-emerald-600 dark:text-emerald-400 font-bold">$7 - $9 / mo</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold">$15 / mo</span>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-2 pt-2">
@@ -484,7 +518,7 @@
         </Button>
         <Button
           class="h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
-          @click="triggerMockUpgrade"
+          @click="redirectToUpgradeView"
         >
           Upgrade Now
         </Button>
@@ -495,6 +529,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { db } from '@/firebase'
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore'
 
@@ -511,6 +546,7 @@ const props = defineProps({
   },
 })
 
+const router = useRouter()
 const loading = ref(true)
 const saving = ref(false)
 const copied = ref(false)
@@ -526,6 +562,8 @@ const accountUserId = props.userId
 const activeWidgetId = ref(`widget_${props.userId.slice(0, 8)}_main_001`)
 const widgetName = ref('My Booking Calendar')
 const selectedCalendarEmail = ref('')
+
+const bookingMode = ref('auto')
 
 const settings = reactive({
   defaultView: 'month',
@@ -543,7 +581,6 @@ const settings = reactive({
 
 const connectedAccounts = ref([])
 
-// 🆕 Monetization & Gating Interactive State Variables
 const userPlanTier = ref('free')
 const showUpgradeModal = ref(false)
 
@@ -609,31 +646,9 @@ function handlePremiumFeatureClick(targetValue, mode) {
   }
 }
 
-async function triggerMockUpgrade() {
-  try {
-    saving.value = true
-    showUpgradeModal.value = false
-
-    // Provision immediate real-time database update over user profile configuration data
-    const userProfileRef = doc(db, 'users', props.userId)
-    await setDoc(userProfileRef, { planTier: 'pro' }, { merge: true })
-
-    userPlanTier.value = 'pro'
-
-    status.type = 'success'
-    status.message =
-      '🚀 Premium Account Activated! Unlocking advanced styling components across workspace canvas...'
-
-    autoClearTimeout = setTimeout(() => {
-      status.message = ''
-    }, 4000)
-  } catch (err) {
-    console.error('Failed processing mock tier configuration upgrade pass:', err)
-    status.type = 'error'
-    status.message = 'System configuration failure during billing upgrade initialization hook.'
-  } finally {
-    saving.value = false
-  }
+function redirectToUpgradeView() {
+  showUpgradeModal.value = false
+  router.push('/dashboard/upgrade')
 }
 
 const fetchConnectedAccounts = async () => {
@@ -670,6 +685,7 @@ async function saveWidgetSettings() {
         ownerUid: accountUserId,
         calendarSourceEmail: selectedCalendarEmail.value,
         widgetName: widgetName.value,
+        bookingMode: bookingMode.value,
         settings: { ...settings },
         updatedAt: new Date().toISOString(),
       },
@@ -730,6 +746,8 @@ onMounted(async () => {
       const incomingData = docSnap.data()
       widgetName.value = incomingData.widgetName || 'Main Booking Calendar'
       selectedCalendarEmail.value = incomingData.calendarSourceEmail || ''
+
+      bookingMode.value = incomingData.bookingMode || 'auto'
 
       const savedSettings = incomingData.settings || incomingData || {}
       Object.assign(settings, {

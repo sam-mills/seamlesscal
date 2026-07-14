@@ -227,7 +227,7 @@
           <div
             :class="[
               'p-4 rounded-xl border flex items-center justify-between transition-colors',
-              profile.planTier === 'professional'
+              profile.planTier === 'pro'
                 ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-950/40'
                 : 'bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800',
             ]"
@@ -241,21 +241,21 @@
               <h4
                 :class="[
                   'text-xl font-bold mt-0.5 capitalize',
-                  profile.planTier === 'professional'
+                  profile.planTier === 'pro'
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-zinc-500 dark:text-zinc-300',
                 ]"
               >
-                {{ profile.planTier || 'Free Sandbox' }} Tier
+                {{ profile.planTier === 'pro' ? 'Pro Hub' : 'Free Sandbox' }} Tier
               </h4>
             </div>
             <span
               :class="[
                 'px-2 py-1 text-white rounded-full text-[10px] font-bold tracking-wider uppercase',
-                profile.planTier === 'professional' ? 'bg-emerald-500' : 'bg-zinc-500',
+                profile.planTier === 'pro' ? 'bg-emerald-500' : 'bg-zinc-500',
               ]"
             >
-              {{ profile.planTier === 'professional' ? 'Active' : 'Sandbox' }}
+              {{ profile.planTier === 'pro' ? 'Active' : 'Sandbox' }}
             </span>
           </div>
 
@@ -274,7 +274,7 @@
             >
               <span class="font-medium text-slate-400">System API Allocation Limits:</span>
               <span
-                v-if="profile.planTier === 'professional'"
+                v-if="profile.planTier === 'pro'"
                 class="font-bold text-emerald-600 dark:text-emerald-400"
               >
                 Unlimited Calls
@@ -283,19 +283,17 @@
                 {{ profile.apiCount || 0 }} / 500 Calls
               </span>
             </div>
-
-            <div
-              v-if="profile.planTier === 'professional' && profile.renewalAssessment"
-              class="flex justify-between pt-1"
-            >
-              <span class="font-medium text-slate-400">Next Renewal Assessment:</span>
-              <span class="font-bold font-mono text-slate-900 dark:text-zinc-100">
-                {{ profile.renewalAssessment }}
-              </span>
-            </div>
           </div>
+
+          <Button
+            @click="router.push('/dashboard/upgrade')"
+            class="w-full mt-2 text-xs font-bold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 text-white cursor-pointer h-9"
+          >
+            {{ profile.planTier === 'pro' ? 'Manage Billing Account' : 'Upgrade Account Plan ✨' }}
+          </Button>
         </Card>
       </div>
+
       <ConfirmModal
         :is-open="isDisconnectModalOpen"
         title="Sever Google Integration"
@@ -312,25 +310,14 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { db } from '@/firebase'
-import {
-  doc,
-  getDoc,
-  setDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  deleteDoc,
-} from 'firebase/firestore'
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 
-// Import Shadcn Primitives
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-
-// Custom Modern Dialog Primitive
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const props = defineProps({
@@ -340,17 +327,16 @@ const props = defineProps({
   },
 })
 
+const router = useRouter()
 const loading = ref(true)
 const updating = ref(false)
 const globalAccounts = ref([])
 
-// CHANGED: Notifies App.vue to refresh the global navbar identity parameters
 const emit = defineEmits(['profile-updated'])
 
 const isDisconnectModalOpen = ref(false)
 const pendingAccountToDisconnect = ref(null)
 
-// Reactive UI alert machine configuration
 const status = reactive({
   message: '',
   type: 'success',
@@ -359,19 +345,16 @@ const status = reactive({
 let autoClearTimeout = null
 let googleAuthClient = null
 
-// Profile data setup
 const profile = reactive({
   displayName: '',
   timezone: 'Europe/London',
   logoUrl: '',
   planTier: 'free',
   apiCount: 0,
-  renewalAssessment: '',
 })
 
 const fetchUserProfileAndIntegrations = async () => {
   try {
-    // 1. Fetch connection details
     const q = query(collection(db, 'connections'), where('ownerUid', '==', props.userId))
     const querySnapshot = await getDocs(q)
     const accounts = []
@@ -380,7 +363,6 @@ const fetchUserProfileAndIntegrations = async () => {
     })
     globalAccounts.value = accounts
 
-    // 2. Fetch specific user record details from database
     const userDocRef = doc(db, 'users', props.userId)
     const userSnap = await getDoc(userDocRef)
 
@@ -392,14 +374,6 @@ const fetchUserProfileAndIntegrations = async () => {
         logoUrl: data.logoUrl || '',
         planTier: data.planTier || 'free',
         apiCount: data.apiCount || 0,
-        // Format raw timestamps into local readable calendar strings if present
-        renewalAssessment: data.renewalAssessment
-          ? new Date(data.renewalAssessment).toLocaleDateString(undefined, {
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric',
-            })
-          : '',
       })
     }
   } catch (err) {
@@ -425,7 +399,6 @@ const connectGoogleCalendar = () => {
 const disconnectAccount = (account) => {
   if (autoClearTimeout) clearTimeout(autoClearTimeout)
   status.message = ''
-
   pendingAccountToDisconnect.value = account
   isDisconnectModalOpen.value = true
 }
@@ -436,12 +409,15 @@ const handleConfirmDisconnect = async () => {
 
   isDisconnectModalOpen.value = false
   pendingAccountToDisconnect.value = null
+  loading.value = true
 
   try {
-    const connectionDocRef = doc(db, 'connections', account.id)
-    await deleteDoc(connectionDocRef)
+    const functionsInstance = getFunctions(db.app)
+    const disconnectCall = httpsCallable(functionsInstance, 'disconnectCalendar')
+    await disconnectCall({ email: account.email })
 
     await fetchUserProfileAndIntegrations()
+
     status.type = 'success'
     status.message = `Google account integration context (${account.email}) severed successfully.`
 
@@ -452,6 +428,8 @@ const handleConfirmDisconnect = async () => {
     console.error('Failed to tear down connection link:', err)
     status.type = 'error'
     status.message = `Disconnection sequence interrupted: ${err.message}`
+  } finally {
+    loading.value = false
   }
 }
 
@@ -504,10 +482,8 @@ const saveProfileData = async () => {
     status.type = 'success'
     status.message = 'Account profile criteria synchronized successfully!'
 
-    // CHANGED: Fires background listener update inside App.vue instantly
     emit('profile-updated')
 
-    // CHANGED: Dismisses green banner after 4 seconds without triggering a page reset
     autoClearTimeout = setTimeout(() => {
       status.message = ''
     }, 4000)
@@ -540,8 +516,8 @@ onMounted(async () => {
 
         if (response.code) {
           try {
-            const functions = getFunctions(db.app)
-            const exchangeFunction = httpsCallable(functions, 'exchangeAuthCodeForTokens')
+            const functionsInstance = getFunctions(db.app)
+            const exchangeFunction = httpsCallable(functionsInstance, 'exchangeAuthCodeForTokens')
             const result = await exchangeFunction({ code: response.code })
 
             status.type = 'success'
@@ -562,3 +538,5 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped></style>
