@@ -1,18 +1,64 @@
-rules_version='2'
-
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 7, 3);
+
+    // Helper utility function to check if the client is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper utility function to fetch the user's live profile record directly from the server
+    function getUserProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Allow initial row creation instantly without crashing on the diff evaluation
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Strictly prevent clients from manually changing their own plan tier or quotas on update
+      allow update: if isAuthenticated() && request.auth.uid == userId 
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['planTier', 'maxWidgetsAllowed']));
+                    
+      // Prevent deletion entirely
+      allow delete: if false;
+    }
+
+    match /connections/{connectionId} {
+      allow read, write: if false;
+    }
+
+    match /widgets/{widgetId} {
+      allow read: if true; 
+      
+      allow write: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
+      
+      allow create: if isAuthenticated() 
+        && (request.resource.data.ownerUid == request.auth.uid)
+        && (
+          request.resource.data.settings.get('defaultView', 'month') != 'agenda' || getUserProfile().planTier != 'free'
+        )
+        && (
+          !(request.resource.data.settings.get('fontFamily', 'sans-serif') in ['serif', 'mono']) || getUserProfile().planTier != 'free'
+        )
+        && (
+          !(request.resource.data.settings.get('borderRadius', '6px') in ['0px', '12px']) || getUserProfile().planTier != 'free'
+        );
+    }
+
+    match /bookings/{bookingId} {
+      allow create: if false; 
+
+      // Only the verified admin/host who owns the calendar can look up or manipulate complete booking objects.
+      allow read, update, delete: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /mail/{mailId} {
+      // Clients can never browse the global mail queue, but logged-in accounts can submit tasks.
+      allow read: if false;
+      allow create: if isAuthenticated();
     }
   }
 }

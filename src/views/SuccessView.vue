@@ -1,261 +1,76 @@
 <template>
-  <div class="success-container">
-    <div class="success-card">
-      <div class="icon-burst">
-        <span class="checkmark">✓</span>
+  <div class="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans text-white">
+    <Card
+      class="w-full max-w-md p-8 bg-zinc-900 border-zinc-800 shadow-2xl space-y-6 text-center animate-fade-in"
+    >
+      <!-- Lottie-style Animated Success Ring -->
+      <div
+        class="relative flex items-center justify-center mx-auto w-20 h-20 bg-emerald-500/10 rounded-full border border-emerald-500/20 text-4xl text-emerald-400 animate-bounce"
+      >
+        ✨
       </div>
 
-      <div class="header-section">
-        <h1>Welcome to Professional Hub</h1>
-        <p class="invoice-meta" v-if="sessionId">Session Token Authenticated</p>
+      <div class="space-y-2">
+        <h1 class="text-2xl font-extrabold tracking-tight text-white">System Upgrade Verified!</h1>
+        <p class="text-sm text-zinc-400">
+          Your SeamlessCal account is now synchronized with our **Pro Hub** engine.
+        </p>
       </div>
 
-      <hr class="divider" />
-
-      <div class="feature-unlocked-box">
-        <h3>🚀 Your New Premium Engine Assets:</h3>
-        <ul class="perk-list">
-          <li>
-            <span class="icon">✨</span>
-            <div>
-              <strong>Transactional Booking Pipeline Activated</strong>
-              <p>
-                Clients can now select slots, submit metadata notes, and populate your schedule
-                matrix live.
-              </p>
-            </div>
-          </li>
-          <li>
-            <span class="icon">⚡</span>
-            <div>
-              <strong>Realtime Google Calendar Integration</strong>
-              <p>
-                Confirmed reservations bypass queues and write straight to your synchronized Google
-                cloud calendar logs.
-              </p>
-            </div>
-          </li>
-          <li>
-            <span class="icon">🎨</span>
-            <div>
-              <strong>Advanced Canvas Layout Customizations</strong>
-              <p>
-                Full design authority over custom border radius tokens, geometric constraints, and
-                premium typography structures.
-              </p>
-            </div>
-          </li>
-        </ul>
+      <!-- Live Plan Status Summary Box -->
+      <div class="p-4 bg-zinc-950/50 rounded-xl border border-zinc-800 text-left space-y-2.5">
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-zinc-500">Subscription Status:</span>
+          <span
+            class="text-emerald-400 font-bold uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded text-[10px]"
+            >Active</span
+          >
+        </div>
+        <div class="flex justify-between items-center text-xs border-t border-zinc-800/60 pt-2.5">
+          <span class="text-zinc-500">Activated Tier:</span>
+          <span class="text-zinc-200 font-bold">Pro Workspace ($15/mo)</span>
+        </div>
+        <div class="flex justify-between items-center text-xs border-t border-zinc-800/60 pt-2.5">
+          <span class="text-zinc-500">Unlocked Features:</span>
+          <span class="text-zinc-300 font-medium">Holds, Custom Templates, Live Sync</span>
+        </div>
       </div>
 
-      <div class="action-footer">
-        <router-link to="/dashboard/customizer" class="cta-btn primary-cta">
-          Configure Your Live Widget Now
-        </router-link>
-        <router-link to="/dashboard" class="cta-btn secondary-cta">
-          Go to Main Workspace Overview
-        </router-link>
+      <div class="space-y-3 pt-2">
+        <Button
+          @click="router.push('/dashboard')"
+          class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 shadow-lg shadow-emerald-900/20 transition-all text-xs cursor-pointer"
+        >
+          Launch Appointment Workspace
+        </Button>
+
+        <p class="text-[10px] text-zinc-500">
+          Sync processes typically take less than 10 seconds. If your dashboard does not show "Pro"
+          instantly, please refresh your browser.
+        </p>
       </div>
-    </div>
+    </Card>
   </div>
 </template>
 
 <script setup>
-import { useRoute } from 'vue-router'
-import { computed } from 'vue'
+import { onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { db } from '@/firebase'
+import { doc, getDoc } from 'firebase/firestore'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
+const router = useRouter()
 const route = useRoute()
-const sessionId = computed(() => route.query.session_id || '')
+
+onMounted(async () => {
+  const sessionId = route.query.session_id
+
+  if (!sessionId) {
+    console.warn('No active Stripe checkout session ID found in route query parameters.')
+    // If they try to manual-route to success without paying, bounce them back to the upgrade gate
+    router.push('/dashboard/upgrade')
+  }
+})
 </script>
-
-<style scoped>
-.success-container {
-  min-height: calc(100vh - 100px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  font-family: 'Inter', sans-serif;
-  background-color: #fafafa;
-}
-.dark .success-container {
-  background-color: #09090b;
-}
-
-.success-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  max-width: 580px;
-  width: 100%;
-  padding: 40px;
-  text-align: center;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-}
-.dark .success-card {
-  background: #121214;
-  border-color: #27272a;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
-}
-
-.icon-burst {
-  width: 64px;
-  height: 64px;
-  background-color: #ecfdf5;
-  border: 2px solid #a7f3d0;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 24px auto;
-}
-.dark .icon-burst {
-  background-color: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.2);
-}
-
-.checkmark {
-  color: #10b981;
-  font-size: 1.75rem;
-  font-weight: 700;
-}
-
-.header-section h1 {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin-bottom: 8px;
-}
-.dark .header-section h1 {
-  color: #f4f4f5;
-}
-
-.header-section p {
-  color: #64748b;
-  font-size: 0.95rem;
-}
-.dark .header-section p {
-  color: #a1a1aa;
-}
-
-.invoice-meta {
-  font-family: monospace;
-  font-size: 0.75rem !important;
-  background: #f1f5f9;
-  padding: 4px 10px;
-  border-radius: 6px;
-  display: inline-block;
-  margin-top: 4px;
-  color: #475569 !important;
-}
-.dark .invoice-meta {
-  background: #1a1a1e;
-  color: #71717a !important;
-}
-
-.divider {
-  border: 0;
-  border-top: 1px dashed #e2e8f0;
-  margin: 30px 0;
-}
-.dark .divider {
-  border-top-color: #27272a;
-}
-
-.feature-unlocked-box {
-  text-align: left;
-  margin-bottom: 35px;
-}
-
-.feature-unlocked-box h3 {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #94a3b8;
-  font-weight: 700;
-  margin-bottom: 20px;
-}
-
-.perk-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.perk-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.perk-list .icon {
-  font-size: 1.25rem;
-  line-height: 1;
-  padding-top: 2px;
-}
-
-.perk-list strong {
-  display: block;
-  font-size: 0.95rem;
-  color: #1e293b;
-  font-weight: 600;
-}
-.dark .perk-list strong {
-  color: #e4e4e7;
-}
-
-.perk-list p {
-  font-size: 0.85rem;
-  color: #64748b;
-  margin-top: 4px;
-  line-height: 1.5;
-}
-.dark .perk-list p {
-  color: #71717a;
-}
-
-.action-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.cta-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 44px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.15s ease;
-}
-
-.primary-cta {
-  background-color: #1e6b7b;
-  color: #ffffff;
-}
-.primary-cta:hover {
-  background-color: #154d59;
-}
-
-.secondary-cta {
-  background-color: transparent;
-  color: #475569;
-  border: 1px solid #cbd5e1;
-}
-.dark .secondary-cta {
-  color: #a1a1aa;
-  border-color: #27272a;
-}
-.secondary-cta:hover {
-  background-color: #f8fafc;
-}
-.dark .secondary-cta:hover {
-  background-color: #18181b;
-}
-</style>

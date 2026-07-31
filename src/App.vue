@@ -1,7 +1,18 @@
 <template>
   <div class="min-h-screen bg-slate-950 text-slate-100 relative">
-    <AuthGate v-if="!currentUserId" @auth-success="handleAuthStateSet" />
+    <!-- 1. 🚀 PUBLIC ROUTE BYPASS -->
+    <div v-if="isPublicRoute" class="min-h-screen">
+      <main class="h-full">
+        <RouterView />
+      </main>
+    </div>
 
+    <!-- 2. PRIVATE PRIVATE DASHBOARD PATHS -->
+    <div v-else-if="!currentUserId">
+      <AuthGate @auth-success="handleAuthStateSet" />
+    </div>
+
+    <!-- 3. AUTHORIZED HOST PORTAL VIEW -->
     <div v-else class="min-h-screen flex flex-col">
       <nav
         class="border-b border-zinc-800 bg-zinc-900/60 backdrop-blur-md px-6 py-3 flex items-center justify-between h-14 select-none z-40"
@@ -75,11 +86,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue' // 🚀 Added computed
 import { auth, db } from '@/firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router' // 🚀 Added useRoute
 
 // Global Shared Components
 import AuthGate from '@/components/AuthGate.vue'
@@ -88,6 +99,10 @@ import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 const currentUserId = ref(null)
 const isLogoutModalOpen = ref(false)
 const router = useRouter()
+const route = useRoute() // 🚀 Register Route access to match tags
+
+// 🚀 Returns true if the active route is the widget renderer bypass
+const isPublicRoute = computed(() => route.meta.isPublic === true)
 
 const userProfile = reactive({
   logoUrl: '',
@@ -115,7 +130,11 @@ onMounted(() => {
     } else {
       currentUserId.value = null
       userProfile.logoUrl = ''
-      router.push('/') // Boot unauthenticated user back to landing view
+
+      // 🛡️ Only redirect to home if we are NOT on a public route!
+      if (!isPublicRoute.value) {
+        router.push('/')
+      }
     }
   })
 })

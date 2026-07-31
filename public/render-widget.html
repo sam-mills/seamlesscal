@@ -352,13 +352,20 @@
         const target = document.getElementById('canvas-widget-target')
         if (!target) return
 
-        // Build the complete calendar layout frame right inside your target wrapper
+        // 🚀 INJECTED: Button added into the controls flex row
         target.innerHTML = `
         <section class="seamless-cal-wrapper">
-          <div class="cal-controls">
-            <button id="prevBtn" class="nav-btn">&lt; Prev</button>
-            <h2 id="calendarHeaderLabel">Loading...</h2>
-            <button id="nextBtn" class="nav-btn">Next &gt;</button>
+          <div class="cal-controls" style="gap: 12px;">
+            <div style="display: flex; gap: 6px;">
+              <button id="prevBtn" class="nav-btn">&lt; Prev</button>
+              <button id="nextBtn" class="nav-btn">Next &gt;</button>
+            </div>
+            
+            <h2 id="calendarHeaderLabel" style="flex-grow: 1; text-align: center;">Loading...</h2>
+            
+            <button id="inlineBookTriggerBtn" class="nav-btn" style="background-color: var(--calendar-primary); color: white !important; border: none; font-weight: 700; padding: 6px 16px;">
+              ✨ Book Appointment
+            </button>
           </div>
           <div id="gridHeaderDays" class="cal-weekday-header">
             <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div>
@@ -371,6 +378,16 @@
         // Attach navigation events smoothly
         document.getElementById('prevBtn').onclick = () => handleNavigation(-1)
         document.getElementById('nextBtn').onclick = () => handleNavigation(1)
+
+        // 🚀 INJECTED: Broadcast actions to parent script context cleanly
+        document.getElementById('inlineBookTriggerBtn').onclick = () => {
+          window.parent.postMessage(
+            {
+              type: 'LAUNCH_SEAMLESS_BOOKING_MODAL',
+            },
+            '*',
+          )
+        }
       }
 
       function applyDynamicThemeTokens(settings) {
@@ -505,14 +522,28 @@
             const evDiv = document.createElement('div')
             evDiv.className = `day-event ${event.isPrivate ? 'private' : ''}`
 
+            // REPLACE WITH THIS LOGIC CODE BLOCK:
             let timeLabel = '10:00 AM'
             if (event.start && event.start.dateTime && !event.start.isAllDay) {
-              const dateObj = new Date(event.start.dateTime)
-              timeLabel = dateObj.toLocaleTimeString('en-US', {
+              const startDateObj = new Date(event.start.dateTime)
+              const startTimeStr = startDateObj.toLocaleTimeString('en-US', {
                 hour: 'numeric',
                 minute: '2-digit',
                 hour12: true,
               })
+
+              // Check if an end time parameter exists to build a complete range
+              if (event.end && event.end.dateTime) {
+                const endDateObj = new Date(event.end.dateTime)
+                const endTimeStr = endDateObj.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                })
+                timeLabel = `${startTimeStr} - ${endTimeStr}`
+              } else {
+                timeLabel = startTimeStr
+              }
             }
 
             if (!event.isPrivate) {

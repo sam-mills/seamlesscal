@@ -1,43 +1,23 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Client Website Simulation Sandbox</title>
-  <style>
-    /* Simulate a client's website styling to test responsiveness */
-    body {
-      font-family: 'Helvetica Neue', Arial, sans-serif;
-      background-color: #f1f5f9;
-      margin: 0;
-      padding: 40px;
-    }
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      background: #ffffff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    }
-    h1 {
-      color: #0f172a;
-      margin-top: 0;
-    }
-    p {
-      color: #475569;
-      margin-bottom: 30px;
-    }
-  </style>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Host Website Simulation</title>
+  </head>
+  <body style="background: #09090b; padding: 50px; font-family: sans-serif; color: white">
+    <div style="max-w: 1000px; margin: 0 auto; space-y: 6px">
+      <h1>Client Host Portal</h1>
+      <p style="color: #a1a1aa; font-size: 14px; margin-bottom: 40px">
+        Review our real-time availability calendar below to select a date and time slot instantly:
+      </p>
 
-  <div class="container">
-    <h1>Our Booking Calendar</h1>
-    <p>Welcome to our website. Please select an available slot from the calendar framework embedded below.</p>
+      <!-- 🚀 THE INLINE PLACEHOLDER: 
+         Including this tells widget.js to render the calendar directly inside this block 
+         instead of generating a floating pop-up button on the bottom right! -->
+      <div id="seamlesscal-widget" data-widget-id="widget_1TcqhHaq_main_001"></div>
+    </div>
 
-    <div id="seamlesscal-widget" data-widget-id="widget_1TcqhHaq_main_001"></div>
-    <script src="http://localhost:5173/widget.js" defer></script>
-
-</body>
+    <!-- Load your local widget loader script -->
+    <script src="http://localhost:5173/widget.js"></script>
+  </body>
 </html>

@@ -290,9 +290,23 @@
           let data = {}
 
           if (isMockMode) {
+            // 🚀 FIXED: Inlined local sandbox event generators to fix missing function ReferenceError crashes
+            const todayIsoStr = new Date().toISOString().split('T')[0]
+
             data = {
               settings: {},
-              events: generateMockSandboxEvents(),
+              events: [
+                {
+                  title: 'Sample Busy Slot A',
+                  start: `${todayIsoStr}T09:00:00`,
+                  end: `${todayIsoStr}T10:30:00`,
+                },
+                {
+                  title: 'Sample Busy Slot B',
+                  start: `${todayIsoStr}T13:00:00`,
+                  end: `${todayIsoStr}T14:30:00`,
+                },
+              ],
             }
           } else {
             // Fetch the base data stream payload from the cloud function

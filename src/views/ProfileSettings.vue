@@ -355,13 +355,11 @@ const profile = reactive({
 
 const fetchUserProfileAndIntegrations = async () => {
   try {
-    const q = query(collection(db, 'connections'), where('ownerUid', '==', props.userId))
-    const querySnapshot = await getDocs(q)
-    const accounts = []
-    querySnapshot.forEach((doc) => {
-      accounts.push({ id: doc.id, email: doc.data().googleEmail })
-    })
-    globalAccounts.value = accounts
+    const functionsInstance = getFunctions(db.app)
+    const getConnectionsCall = httpsCallable(functionsInstance, 'getHostConnections')
+    const result = await getConnectionsCall()
+
+    globalAccounts.value = result.data.accounts || []
 
     const userDocRef = doc(db, 'users', props.userId)
     const userSnap = await getDoc(userDocRef)
@@ -502,7 +500,7 @@ onMounted(async () => {
     googleAuthClient = window.google.accounts.oauth2.initCodeClient({
       client_id: '415247533936-e569avvi75k2kod4q9nbhecsqojts65n.apps.googleusercontent.com',
       scope:
-        'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/forms.responses.readonly https://www.googleapis.com/auth/userinfo.email',
       ux_mode: 'popup',
       callback: async (response) => {
         if (autoClearTimeout) clearTimeout(autoClearTimeout)
@@ -521,7 +519,7 @@ onMounted(async () => {
             const result = await exchangeFunction({ code: response.code })
 
             status.type = 'success'
-            status.message = `Google Calendar link verification confirmed for profile: ${result.data.email}`
+            status.message = `Google integration permissions successfully authorized for profile: ${result.data.email}`
 
             await fetchUserProfileAndIntegrations()
 

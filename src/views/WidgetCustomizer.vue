@@ -82,325 +82,490 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <Card
-        class="p-6 shadow-sm bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 space-y-6 h-fit"
-      >
-        <div class="space-y-2">
-          <Label class="text-sm font-semibold tracking-wide text-slate-900 dark:text-zinc-100"
-            >Default Interactive View</Label
-          >
-          <div class="grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              :variant="settings?.defaultView === 'month' ? 'outline' : 'default'"
-              @click="settings ? (settings.defaultView = 'month') : null"
-              class="w-full text-xs font-medium"
+      <div class="space-y-6 h-fit flex flex-col">
+        <Card
+          class="p-6 shadow-sm bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 space-y-6"
+        >
+          <div class="space-y-2">
+            <Label class="text-sm font-semibold tracking-wide text-slate-900 dark:text-zinc-100"
+              >Default Interactive View</Label
             >
-              Month Grid
-            </Button>
-            <Button
-              type="button"
-              :variant="settings?.defaultView === 'agenda' ? 'outline' : 'default'"
-              @click="handlePremiumFeatureClick('agenda', 'view')"
-              class="w-full text-xs font-medium flex items-center justify-center gap-1.5"
-            >
-              <span v-if="userPlanTier === 'free'">🔒</span> Agenda List
-            </Button>
+            <div class="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                :variant="settings?.defaultView === 'month' ? 'outline' : 'default'"
+                @click="settings ? (settings.defaultView = 'month') : null"
+                class="w-full text-xs font-medium"
+              >
+                Month Grid
+              </Button>
+              <Button
+                type="button"
+                :variant="settings?.defaultView === 'agenda' ? 'outline' : 'default'"
+                @click="handlePremiumFeatureClick('agenda', 'view')"
+                class="w-full text-xs font-medium flex items-center justify-center gap-1.5"
+              >
+                <span v-if="userPlanTier === 'free'">🔒</span> Agenda List
+              </Button>
+            </div>
+            <div v-if="settings?.defaultView === 'agenda'" class="space-y-2 mt-3 animate-fade-in">
+              <Label
+                class="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider"
+                >Visible Bookings Limit</Label
+              >
+              <select
+                v-model.number="settings.agendaLimit"
+                class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+              >
+                <option v-for="n in 10" :key="n" :value="n">{{ n }} Items Max</option>
+              </select>
+            </div>
           </div>
-          <div v-if="settings?.defaultView === 'agenda'" class="space-y-2 mt-3 animate-fade-in">
+
+          <div class="space-y-3 mb-2">
             <Label
               class="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider"
-              >Visible Bookings Limit</Label
+              >Widget Name</Label
             >
+            <input
+              v-model="widgetName"
+              type="text"
+              placeholder="e.g. Homepage Booking Calendar"
+              class="w-full text-sm rounded-md border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <Label
+              class="text-sm font-semibold tracking-wide text-slate-900 dark:text-zinc-100 flex items-center justify-between"
+            >
+              <span>Booking Engine Status</span>
+              <span
+                v-if="userPlanTier === 'free'"
+                class="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded font-bold"
+                >PRO</span
+              >
+            </Label>
             <select
-              v-model.number="settings.agendaLimit"
+              :value="userPlanTier === 'free' ? 'paused' : bookingMode"
+              @change="(e) => (bookingMode = e.target.value)"
+              @click="userPlanTier === 'free' ? (showUpgradeModal = true) : null"
               class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
             >
-              <option v-for="n in 10" :key="n" :value="n">{{ n }} Items Max</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="space-y-3 mb-2">
-          <Label
-            class="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider"
-            >Widget Name</Label
-          >
-          <input
-            v-model="widgetName"
-            type="text"
-            placeholder="e.g. Homepage Booking Calendar"
-            class="w-full text-sm rounded-md border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
-          />
-        </div>
-
-        <div class="space-y-2">
-          <Label
-            class="text-sm font-semibold tracking-wide text-slate-900 dark:text-zinc-100 flex items-center justify-between"
-          >
-            <span>Booking Engine Status</span>
-            <span
-              v-if="userPlanTier === 'free'"
-              class="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded font-bold"
-              >PRO</span
-            >
-          </Label>
-          <select
-            :value="userPlanTier === 'free' ? 'paused' : bookingMode"
-            @change="(e) => (bookingMode = e.target.value)"
-            @click="userPlanTier === 'free' ? (showUpgradeModal = true) : null"
-            class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
-          >
-            <option value="paused" :disabled="userPlanTier !== 'free'">
-              View-Only Calendar Display Mode {{ userPlanTier === 'free' ? '(Active)' : '' }}
-            </option>
-            <option value="auto" :disabled="userPlanTier === 'free'">
-              Auto-Confirm Engine (Instantly Syncs) {{ userPlanTier === 'free' ? '🔒' : '' }}
-            </option>
-            <option value="request" :disabled="userPlanTier === 'free'">
-              Manual Request Hold Queue (Dashboard Approvals)
-              {{ userPlanTier === 'free' ? '🔒' : '' }}
-            </option>
-          </select>
-          <p class="text-[11px] text-muted-foreground">
-            Free plans display interactive availability streams. Upgrading to Pro activates
-            transactional workflows and sync pipelines.
-          </p>
-        </div>
-
-        <div class="space-y-2">
-          <Label class="text-sm font-semibold tracking-wide text-foreground"
-            >Target Calendar Source Account</Label
-          >
-          <div class="relative w-full">
-            <select
-              v-model="selectedCalendarEmail"
-              class="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background text-foreground ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none cursor-pointer"
-            >
-              <option value="" disabled selected v-if="connectedAccounts.length === 0">
-                No accounts connected. Please link an integration in Account Settings.
+              <option value="paused" :disabled="userPlanTier !== 'free'">
+                View-Only Calendar Display Mode {{ userPlanTier === 'free' ? '(Active)' : '' }}
               </option>
-              <option v-for="account in connectedAccounts" :key="account.id" :value="account.email">
-                {{ account.email }}
+              <option value="auto" :disabled="userPlanTier === 'free'">
+                Auto-Confirm Engine (Instantly Syncs) {{ userPlanTier === 'free' ? '🔒' : '' }}
+              </option>
+              <option value="request" :disabled="userPlanTier === 'free'">
+                Manual Request Hold Queue (Dashboard Approvals)
+                {{ userPlanTier === 'free' ? '🔒' : '' }}
               </option>
             </select>
-            <div
-              class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground"
-            >
-              <svg
-                class="w-4 h-4"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-          <p class="text-[11px] text-muted-foreground">
-            Determines which secure Google token your public layout embeds use to fetch
-            availability.
-          </p>
-        </div>
-
-        <Separator class="my-4 border-slate-200 dark:border-zinc-800" />
-
-        <div class="space-y-4">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-            Theme Color Tokens
-          </h3>
-          <div class="space-y-2 mt-4">
-            <label class="text-sm font-semibold text-slate-900 dark:text-zinc-100"
-              >Base Widget Theme</label
-            >
-            <select
-              v-model="settings.baseTheme"
-              class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-zinc-700 cursor-pointer"
-            >
-              <option value="light">Light Mode (White Background)</option>
-              <option value="dark">Dark Mode (Slate Background)</option>
-              <option value="transparent">Transparent (Adapts to Host Website)</option>
-            </select>
+            <p class="text-[11px] text-muted-foreground">
+              Free plans display interactive availability streams. Upgrading to Pro activates
+              transactional workflows and sync pipelines.
+            </p>
           </div>
 
-          <div class="space-y-3 mb-4">
-            <label class="text-xs font-semibold text-slate-600 dark:text-slate-300"
-              >Quick Styling Presets</label
-            >
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button
-                v-for="preset in colorPresets"
-                :key="preset.name"
-                @click="applyPreset(preset)"
-                type="button"
-                class="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-600 transition text-left text-xs text-slate-700 dark:text-slate-300 group cursor-pointer"
-              >
-                <div class="flex -space-x-1 shadow-sm">
-                  <span
-                    class="w-3.5 h-3.5 rounded-full border border-white dark:border-zinc-900"
-                    :style="{ backgroundColor: preset.primary }"
-                  ></span>
-                  <span
-                    class="w-3.5 h-3.5 rounded-full border border-white dark:border-zinc-900"
-                    :style="{ backgroundColor: preset.accent }"
-                  ></span>
-                  <span
-                    class="w-3.5 h-3.5 rounded-full border border-white dark:border-zinc-900"
-                    :style="{ backgroundColor: preset.bgEvent }"
-                  ></span>
-                </div>
-                <span
-                  class="truncate group-hover:text-slate-900 dark:group-hover:text-white font-medium"
-                  >{{ preset.name }}</span
-                >
-              </button>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-0.5">
-              <Label class="text-sm font-medium text-slate-900 dark:text-zinc-100"
-                >Primary Brand</Label
-              >
-              <span class="text-xs text-slate-400 dark:text-zinc-500"
-                >Headers and frame components</span
-              >
-            </div>
-            <input
-              type="color"
-              v-model="settings.primaryColor"
-              class="w-9 h-9 rounded-md border border-slate-200 dark:border-zinc-700 shadow-sm cursor-pointer bg-transparent p-0.5"
-            />
-          </div>
-
-          <div class="flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-0.5">
-              <Label class="text-sm font-medium text-slate-900 dark:text-zinc-100"
-                >Accent Interaction</Label
-              >
-              <span class="text-xs text-slate-400 dark:text-zinc-500"
-                >Dates numbers and highlights</span
-              >
-            </div>
-            <input
-              type="color"
-              v-model="settings.accentColor"
-              class="w-9 h-9 rounded-md border border-slate-200 dark:border-zinc-700 shadow-sm cursor-pointer bg-transparent p-0.5"
-            />
-          </div>
-
-          <div class="flex items-center justify-between gap-4 mt-4">
-            <div class="flex flex-col gap-0.5">
-              <Label class="text-sm font-medium text-slate-900 dark:text-zinc-100"
-                >Event Panel Tint</Label
-              >
-              <span class="text-xs text-slate-400 dark:text-zinc-500"
-                >Background of event item nodes</span
-              >
-            </div>
-            <input
-              type="color"
-              v-model="settings.eventBgColor"
-              class="w-9 h-9 rounded-md border border-slate-200 dark:border-zinc-700 shadow-sm cursor-pointer bg-transparent p-0.5"
-            />
-          </div>
-
-          <div class="flex items-center justify-between gap-4 mt-4">
-            <div class="flex flex-col gap-0.5">
-              <Label class="text-sm font-medium text-slate-900 dark:text-zinc-100"
-                >Header / UI Text</Label
-              >
-              <span class="text-xs text-slate-400 dark:text-zinc-500"
-                >Month headers and weekday labels</span
-              >
-            </div>
-            <input
-              type="color"
-              v-model="settings.headerTextColor"
-              class="w-9 h-9 rounded-md border border-slate-200 dark:border-zinc-700 shadow-sm cursor-pointer bg-transparent p-0.5"
-            />
-          </div>
-
-          <div class="flex items-center justify-between gap-4 mt-4">
-            <div class="flex flex-col gap-0.5">
-              <Label class="text-sm font-medium text-slate-900 dark:text-zinc-100"
-                >Event Text Color</Label
-              >
-              <span class="text-xs text-slate-400 dark:text-zinc-500"
-                >Text inside the colored event chips</span
-              >
-            </div>
-            <input
-              type="color"
-              v-model="settings.textColor"
-              class="w-9 h-9 rounded-md border border-slate-200 dark:border-zinc-700 shadow-sm cursor-pointer bg-transparent p-0.5"
-            />
-          </div>
-        </div>
-
-        <Separator class="my-4 border-slate-200 dark:border-zinc-800" />
-
-        <div class="space-y-4">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-            Geometric Configurations
-          </h3>
           <div class="space-y-2">
-            <label
-              class="text-sm font-semibold text-slate-900 dark:text-zinc-100 flex items-center justify-between"
+            <Label class="text-sm font-semibold tracking-wide text-foreground"
+              >Target Calendar Source Account</Label
             >
-              <span>Element Border Radius</span>
-              <span
-                v-if="userPlanTier === 'free'"
-                class="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded font-bold"
-                >PRO</span
+            <div class="relative w-full">
+              <select
+                v-model="selectedCalendarEmail"
+                class="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background text-foreground ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none cursor-pointer"
               >
-            </label>
-            <select
-              :value="settings?.borderRadius"
-              @change="(e) => (settings.borderRadius = e.target.value)"
-              @click="userPlanTier === 'free' ? (showUpgradeModal = true) : null"
-              class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-zinc-700 cursor-pointer"
-            >
-              <option value="6px">Subtle Smooth Curves (6px)</option>
-              <option value="0px" :disabled="userPlanTier === 'free'">
-                Sharp Structural Boundaries (0px) {{ userPlanTier === 'free' ? '🔒' : '' }}
-              </option>
-              <option value="12px" :disabled="userPlanTier === 'free'">
-                Highly Rounded Modern (12px) {{ userPlanTier === 'free' ? '🔒' : '' }}
-              </option>
-            </select>
+                <option value="" disabled selected v-if="connectedAccounts.length === 0">
+                  No accounts connected. Please link an integration in Account Settings.
+                </option>
+                <option
+                  v-for="account in connectedAccounts"
+                  :key="account.id"
+                  :value="account.email"
+                >
+                  {{ account.email }}
+                </option>
+              </select>
+              <div
+                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground"
+              >
+                <svg
+                  class="w-4 h-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+            <p class="text-[11px] text-muted-foreground">
+              Determines which secure Google token your public layout embeds use to fetch
+              availability.
+            </p>
           </div>
 
-          <div class="space-y-2 mt-4">
-            <label
-              class="text-sm font-semibold text-slate-900 dark:text-zinc-100 flex items-center justify-between"
+          <!-- 🚀 NEW WORKSPACE INJECTION: OPERATIONAL TYPOLOGY CONTROLLERS -->
+          <Separator class="my-4 border-slate-200 dark:border-zinc-800" />
+          <div class="space-y-4">
+            <h3
+              class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500"
             >
-              <span>Typography Font Family Mapping</span>
-              <span
-                v-if="userPlanTier === 'free'"
-                class="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded font-bold"
-                >PRO</span
+              Booking Engine Configuration
+            </h3>
+
+            <div class="space-y-2 mt-4">
+              <label class="text-sm font-semibold text-slate-900 dark:text-zinc-100"
+                >Operational Booking Style</label
               >
-            </label>
-            <select
-              :value="settings?.fontFamily"
-              @change="(e) => (settings.fontFamily = e.target.value)"
-              @click="userPlanTier === 'free' ? (showUpgradeModal = true) : null"
-              class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-zinc-700 cursor-pointer"
-            >
-              <option value="sans-serif">Modern Clean Sans-Serif</option>
-              <option value="serif" :disabled="userPlanTier === 'free'">
-                Elegant Bookish Serif {{ userPlanTier === 'free' ? '🔒' : '' }}
-              </option>
-              <option value="mono" :disabled="userPlanTier === 'free'">
-                Technical Monospace {{ userPlanTier === 'free' ? '🔒' : '' }}
-              </option>
-            </select>
+              <select
+                v-model="settings.bookingStyle"
+                class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400 cursor-pointer"
+              >
+                <option value="slot">Fixed Appointment Slots (e.g., Barbers, Salons)</option>
+                <option value="range">Custom Time Range (e.g., Venues, Hall Rentals)</option>
+              </select>
+            </div>
+
+            <div v-if="settings.bookingStyle === 'slot'" class="space-y-2 mt-4 animate-fade-in">
+              <label class="text-sm font-semibold text-slate-900 dark:text-zinc-100"
+                >Appointment Duration</label
+              >
+              <select
+                v-model.number="settings.slotDurationMinutes"
+                class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400 cursor-pointer"
+              >
+                <option :value="15">15 Minutes</option>
+                <option :value="30">30 Minutes</option>
+                <option :value="45">45 Minutes</option>
+                <option :value="60">1 Hour</option>
+                <option :value="120">2 Hours</option>
+              </select>
+            </div>
           </div>
-        </div>
-      </Card>
+
+          <Separator class="my-4 border-slate-200 dark:border-zinc-800" />
+
+          <div class="space-y-4">
+            <h3
+              class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500"
+            >
+              Theme Color Tokens
+            </h3>
+            <div class="space-y-2 mt-4">
+              <label class="text-sm font-semibold text-slate-900 dark:text-zinc-100"
+                >Base Widget Theme</label
+              >
+              <select
+                v-model="settings.baseTheme"
+                class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-zinc-700 cursor-pointer"
+              >
+                <option value="light">Light Mode (White Background)</option>
+                <option value="dark">Dark Mode (Slate Background)</option>
+                <option value="transparent">Transparent (Adapts to Host Website)</option>
+              </select>
+            </div>
+
+            <div class="space-y-3 mb-4">
+              <label class="text-xs font-semibold text-slate-600 dark:text-slate-300"
+                >Quick Styling Presets</label
+              >
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  v-for="preset in colorPresets"
+                  :key="preset.name"
+                  @click="applyPreset(preset)"
+                  type="button"
+                  class="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-600 transition text-left text-xs text-slate-700 dark:text-slate-300 group cursor-pointer"
+                >
+                  <div class="flex -space-x-1 shadow-sm">
+                    <span
+                      class="w-3.5 h-3.5 rounded-full border border-white dark:border-zinc-900"
+                      :style="{ backgroundColor: preset.primary }"
+                    ></span>
+                    <span
+                      class="w-3.5 h-3.5 rounded-full border border-white dark:border-zinc-900"
+                      :style="{ backgroundColor: preset.accent }"
+                    ></span>
+                    <span
+                      class="w-3.5 h-3.5 rounded-full border border-white dark:border-zinc-900"
+                      :style="{ backgroundColor: preset.bgEvent }"
+                    ></span>
+                  </div>
+                  <span
+                    class="truncate group-hover:text-slate-900 dark:group-hover:text-white font-medium"
+                    >{{ preset.name }}</span
+                  >
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex flex-col gap-0.5">
+                <Label class="text-sm font-medium text-slate-900 dark:text-zinc-100"
+                  >Primary Brand</Label
+                >
+                <span class="text-xs text-slate-400 dark:text-zinc-500"
+                  >Headers and frame components</span
+                >
+              </div>
+              <input
+                type="color"
+                v-model="settings.primaryColor"
+                class="w-9 h-9 rounded-md border border-slate-200 dark:border-zinc-700 shadow-sm cursor-pointer bg-transparent p-0.5"
+              />
+            </div>
+
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex flex-col gap-0.5">
+                <Label class="text-sm font-medium text-slate-900 dark:text-zinc-100"
+                  >Accent Interaction</Label
+                >
+                <span class="text-xs text-slate-400 dark:text-zinc-500"
+                  >Dates numbers and highlights</span
+                >
+              </div>
+              <input
+                type="color"
+                v-model="settings.accentColor"
+                class="w-9 h-9 rounded-md border border-slate-200 dark:border-zinc-700 shadow-sm cursor-pointer bg-transparent p-0.5"
+              />
+            </div>
+
+            <div class="flex items-center justify-between gap-4 mt-4">
+              <div class="flex flex-col gap-0.5">
+                <Label class="text-sm font-medium text-slate-900 dark:text-zinc-100"
+                  >Event Panel Tint</Label
+                >
+                <span class="text-xs text-slate-400 dark:text-zinc-500"
+                  >Background of event item nodes</span
+                >
+              </div>
+              <input
+                type="color"
+                v-model="settings.eventBgColor"
+                class="w-9 h-9 rounded-md border border-slate-200 dark:border-zinc-700 shadow-sm cursor-pointer bg-transparent p-0.5"
+              />
+            </div>
+
+            <div class="flex items-center justify-between gap-4 mt-4">
+              <div class="flex flex-col gap-0.5">
+                <Label class="text-sm font-medium text-slate-900 dark:text-zinc-100"
+                  >Header / UI Text</Label
+                >
+                <span class="text-xs text-slate-400 dark:text-zinc-500"
+                  >Month headers and weekday labels</span
+                >
+              </div>
+              <input
+                type="color"
+                v-model="settings.headerTextColor"
+                class="w-9 h-9 rounded-md border border-slate-200 dark:border-zinc-700 shadow-sm cursor-pointer bg-transparent p-0.5"
+              />
+            </div>
+
+            <div class="flex items-center justify-between gap-4 mt-4">
+              <div class="flex flex-col gap-0.5">
+                <Label class="text-sm font-medium text-slate-900 dark:text-zinc-100"
+                  >Event Text Color</Label
+                >
+                <span class="text-xs text-slate-400 dark:text-zinc-500"
+                  >Text inside the colored event chips</span
+                >
+              </div>
+              <input
+                type="color"
+                v-model="settings.textColor"
+                class="w-9 h-9 rounded-md border border-slate-200 dark:border-zinc-700 shadow-sm cursor-pointer bg-transparent p-0.5"
+              />
+            </div>
+          </div>
+
+          <Separator class="my-4 border-slate-200 dark:border-zinc-800" />
+
+          <div class="space-y-4">
+            <h3
+              class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500"
+            >
+              Geometric Configurations
+            </h3>
+            <div class="space-y-2">
+              <label
+                class="text-sm font-semibold text-slate-900 dark:text-zinc-100 flex items-center justify-between"
+              >
+                <span>Element Border Radius</span>
+                <span
+                  v-if="userPlanTier === 'free'"
+                  class="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded font-bold"
+                  >PRO</span
+                >
+              </label>
+              <select
+                :value="settings?.borderRadius"
+                @change="(e) => (settings.borderRadius = e.target.value)"
+                @click="userPlanTier === 'free' ? (showUpgradeModal = true) : null"
+                class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-zinc-700 cursor-pointer"
+              >
+                <option value="6px">Subtle Smooth Curves (6px)</option>
+                <option value="0px" :disabled="userPlanTier === 'free'">
+                  Sharp Structural Boundaries (0px) {{ userPlanTier === 'free' ? '🔒' : '' }}
+                </option>
+                <option value="12px" :disabled="userPlanTier === 'free'">
+                  Highly Rounded Modern (12px) {{ userPlanTier === 'free' ? '🔒' : '' }}
+                </option>
+              </select>
+            </div>
+
+            <div class="space-y-2 mt-4">
+              <label
+                class="text-sm font-semibold text-slate-900 dark:text-zinc-100 flex items-center justify-between"
+              >
+                <span>Typography Font Family Mapping</span>
+                <span
+                  v-if="userPlanTier === 'free'"
+                  class="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded font-bold"
+                  >PRO</span
+                >
+              </label>
+              <select
+                :value="settings?.fontFamily"
+                @change="(e) => (settings.fontFamily = e.target.value)"
+                @click="userPlanTier === 'free' ? (showUpgradeModal = true) : null"
+                class="w-full bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-200 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-zinc-700 cursor-pointer"
+              >
+                <option value="sans-serif">Modern Clean Sans-Serif</option>
+                <option value="serif" :disabled="userPlanTier === 'free'">
+                  Elegant Bookish Serif {{ userPlanTier === 'free' ? '🔒' : '' }}
+                </option>
+                <option value="mono" :disabled="userPlanTier === 'free'">
+                  Technical Monospace {{ userPlanTier === 'free' ? '🔒' : '' }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          class="p-6 shadow-sm bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 space-y-4 mt-6"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex flex-col gap-0.5">
+              <Label
+                class="text-sm font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2"
+              >
+                <span>Penciled-In Pipeline State</span>
+                <span
+                  v-if="userPlanTier === 'free'"
+                  class="text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded font-bold"
+                  >PRO</span
+                >
+              </Label>
+              <span class="text-xs text-slate-400 dark:text-zinc-500"
+                >Enable booking holds and provisional queues.</span
+              >
+            </div>
+            <input
+              type="checkbox"
+              v-model="enablePenciledInPipeline"
+              :disabled="userPlanTier === 'free'"
+              @click="userPlanTier === 'free' ? (showUpgradeModal = true) : null"
+              class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer h-4 w-4"
+            />
+          </div>
+
+          <div
+            v-if="enablePenciledInPipeline"
+            class="space-y-4 pt-3 border-t border-slate-100 dark:border-zinc-800/60 animate-fade-in"
+          >
+            <h4
+              class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500"
+            >
+              Boilerplate Response Templates
+            </h4>
+
+            <div
+              class="bg-slate-50 dark:bg-zinc-950 p-3 rounded-lg border border-slate-200 dark:border-zinc-800 space-y-3"
+            >
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                  >Shortcut / Button Label</label
+                >
+                <input
+                  type="text"
+                  v-model="newTemplateTitle"
+                  placeholder="e.g., Deposit Bank Details"
+                  class="w-full text-xs rounded border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                  >Email Message Payload Text</label
+                >
+                <textarea
+                  v-model="newTemplateContent"
+                  placeholder="Please transfer the £50 structural safety deposit to Bank: 12-34-56, Acc: 98765432 to finalize your room lock..."
+                  class="w-full text-xs h-20 rounded border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans"
+                />
+              </div>
+              <Button
+                @click="addNewMessageTemplate"
+                type="button"
+                variant="outline"
+                class="w-full text-xs font-bold h-8 border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer transition-all"
+              >
+                + Save Boilerplate Template
+              </Button>
+
+              <p
+                class="text-[10px] text-amber-500 dark:text-amber-400 font-medium flex items-center gap-1 bg-amber-500/5 border border-amber-500/10 rounded p-1.5 animate-pulse"
+              >
+                ⚠️ Remember to click "Save Settings" at the top of the page to save your changes
+                permanently.
+              </p>
+            </div>
+
+            <div class="space-y-2">
+              <span class="text-[11px] font-bold text-slate-500 block"
+                >Your Saved Messaging Blocks ({{ customMessageTemplates.length }})</span
+              >
+              <div
+                v-for="(tpl, idx) in customMessageTemplates"
+                :key="idx"
+                class="p-2.5 rounded border border-slate-200 dark:border-zinc-800 text-xs flex items-start justify-between gap-3 bg-white dark:bg-zinc-950"
+              >
+                <div class="truncate space-y-0.5 flex-1">
+                  <strong class="text-slate-900 dark:text-zinc-100 text-[11px] block">{{
+                    tpl.title
+                  }}</strong>
+                  <p
+                    class="text-[10px] text-slate-400 dark:text-zinc-500 truncate font-sans italic"
+                  >
+                    "{{ tpl.content }}"
+                  </p>
+                </div>
+                <button
+                  @click="removeMessageTemplate(idx)"
+                  type="button"
+                  class="text-rose-500 font-bold hover:text-rose-600 transition text-sm cursor-pointer p-0.5"
+                >
+                  &times;
+                </button>
+              </div>
+              <p
+                v-if="customMessageTemplates.length === 0"
+                class="text-[11px] text-slate-400 dark:text-zinc-500 italic text-center py-2"
+              >
+                No boilerplate templates saved yet.
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
 
       <div class="lg:col-span-2 flex flex-col space-y-4">
         <Label class="text-sm font-semibold text-slate-700 dark:text-zinc-300">
@@ -416,11 +581,11 @@
           class="p-4 bg-slate-100 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 shadow-sm flex-grow min-h-[550px]"
         >
           <iframe
-            :key="`${activeWidgetId}-${selectedCalendarEmail}-${settings?.baseTheme}-${settings?.primaryColor}-${settings?.accentColor}-${settings?.eventBgColor}-${settings?.textColor}-${settings?.headerTextColor}-${settings?.defaultView}-${settings?.fontFamily}-${settings?.borderRadius}-${settings?.agendaLimit}`"
+            :key="`combo-preview-${activeWidgetId}-${selectedCalendarEmail}-${settings?.baseTheme}-${settings?.primaryColor}-${settings?.accentColor}-${settings?.eventBgColor}-${settings?.textColor}-${settings?.headerTextColor}-${settings?.defaultView}-${settings?.fontFamily}-${settings?.borderRadius}-${settings?.agendaLimit}-${settings?.bookingStyle}-${settings?.slotDurationMinutes}`"
             :src="
               connectedAccounts.length > 0
-                ? `/render-widget.html?id=${activeWidgetId}&calendarSourceEmail=${encodeURIComponent(selectedCalendarEmail)}&baseTheme=${settings?.baseTheme || 'dark'}&primaryColor=${encodeURIComponent(settings?.primaryColor || '#1e6b7b')}&accentColor=${encodeURIComponent(settings?.accentColor || '#f0ad4e')}&eventBgColor=${encodeURIComponent(settings?.eventBgColor || '#eef7f9')}&textColor=${encodeURIComponent(settings?.textColor || '#0f172a')}&headerTextColor=${encodeURIComponent(settings?.headerTextColor || '#ffffff')}&defaultView=${settings?.defaultView || 'month'}&fontFamily=${settings?.fontFamily || 'sans-serif'}&borderRadius=${settings?.borderRadius || '6px'}&agendaLimit=${settings?.agendaLimit || 3}`
-                : `/render-widget.html?mockData=true&baseTheme=${settings?.baseTheme || 'dark'}&primaryColor=${encodeURIComponent(settings?.primaryColor || '#1e6b7b')}&accentColor=${encodeURIComponent(settings?.accentColor || '#f0ad4e')}&eventBgColor=${encodeURIComponent(settings?.eventBgColor || '#eef7f9')}&textColor=${encodeURIComponent(settings?.textColor || '#0f172a')}&headerTextColor=${encodeURIComponent(settings?.headerTextColor || '#ffffff')}&defaultView=${settings?.defaultView || 'month'}&fontFamily=${settings?.fontFamily || 'sans-serif'}&borderRadius=${settings?.borderRadius || '6px'}&agendaLimit=${settings?.agendaLimit || 3}`
+                ? `/render-widget.html?id=${activeWidgetId}&calendarSourceEmail=${encodeURIComponent(selectedCalendarEmail)}&baseTheme=${settings?.baseTheme || 'dark'}&primaryColor=${encodeURIComponent(settings?.primaryColor || '#1e6b7b')}&accentColor=${encodeURIComponent(settings?.accentColor || '#f0ad4e')}&eventBgColor=${encodeURIComponent(settings?.eventBgColor || '#eef7f9')}&textColor=${encodeURIComponent(settings?.textColor || '#0f172a')}&headerTextColor=${encodeURIComponent(settings?.headerTextColor || '#ffffff')}&defaultView=${settings?.defaultView || 'month'}&fontFamily=${settings?.fontFamily || 'sans-serif'}&borderRadius=${settings?.borderRadius || '6px'}&agendaLimit=${settings?.agendaLimit || 3}&bookingStyle=${settings?.bookingStyle || 'slot'}&slotDurationMinutes=${settings?.slotDurationMinutes || 30}`
+                : `/render-widget.html?mockData=true&baseTheme=${settings?.baseTheme || 'dark'}&primaryColor=${encodeURIComponent(settings?.primaryColor || '#1e6b7b')}&accentColor=${encodeURIComponent(settings?.accentColor || '#f0ad4e')}&eventBgColor=${encodeURIComponent(settings?.eventBgColor || '#eef7f9')}&textColor=${encodeURIComponent(settings?.textColor || '#0f172a')}&headerTextColor=${encodeURIComponent(settings?.headerTextColor || '#ffffff')}&defaultView=${settings?.defaultView || 'month'}&fontFamily=${settings?.fontFamily || 'sans-serif'}&borderRadius=${settings?.borderRadius || '6px'}&agendaLimit=${settings?.agendaLimit || 3}&bookingStyle=${settings?.bookingStyle || 'slot'}&slotDurationMinutes=${settings?.slotDurationMinutes || 30}`
             "
             class="w-full border-none bg-transparent transition-all duration-200"
             style="height: 650px"
@@ -496,8 +661,8 @@
           Upgrade to SeamlessCal Pro
         </h3>
         <p class="text-xs text-slate-500 dark:text-zinc-400">
-          Unlock advanced geometric configurations, custom typography mappings, and the high-speed
-          responsive Agenda view layout.
+          Unlock advanced geometric configurations, custom typography mappings, and the hold queue
+          pipeline workflow engine.
         </p>
       </div>
       <div
@@ -532,6 +697,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { db } from '@/firebase'
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 
 // Import Primitives
 import { Card } from '@/components/ui/card'
@@ -565,6 +731,12 @@ const selectedCalendarEmail = ref('')
 
 const bookingMode = ref('auto')
 
+// 🚀 CUSTOM ROADMAP STRUCTURAL TOKENS
+const enablePenciledInPipeline = ref(false)
+const customMessageTemplates = ref([])
+const newTemplateTitle = ref('')
+const newTemplateContent = ref('')
+
 const settings = reactive({
   defaultView: 'month',
   baseTheme: 'dark',
@@ -577,6 +749,8 @@ const settings = reactive({
   maxWidth: '100%',
   borderRadius: '6px',
   agendaLimit: 3,
+  bookingStyle: 'slot', // 🚀 Initialize typology schema default
+  slotDurationMinutes: 30, // 🚀 Initialize slot increment timeline fallback
 })
 
 const connectedAccounts = ref([])
@@ -651,16 +825,31 @@ function redirectToUpgradeView() {
   router.push('/dashboard/upgrade')
 }
 
+// 🔄 TEMPLATE WORKSPACE MUTATION PROCESSORS
+function addNewMessageTemplate() {
+  if (!newTemplateTitle.value.trim() || !newTemplateContent.value.trim()) {
+    alert('Please fill out both the template label and message description parameters.')
+    return
+  }
+  customMessageTemplates.value.push({
+    title: newTemplateTitle.value.trim(),
+    content: newTemplateContent.value.trim(),
+  })
+  newTemplateTitle.value = ''
+  newTemplateContent.value = ''
+}
+
+function removeMessageTemplate(index) {
+  customMessageTemplates.value.splice(index, 1)
+}
+
 const fetchConnectedAccounts = async () => {
   try {
-    const q = query(collection(db, 'connections'), where('ownerUid', '==', props.userId))
-    const querySnapshot = await getDocs(q)
-    const accountsList = []
+    const functionsInstance = getFunctions(db.app)
+    const getConnectionsCall = httpsCallable(functionsInstance, 'getHostConnections')
+    const result = await getConnectionsCall()
 
-    querySnapshot.forEach((doc) => {
-      accountsList.push({ id: doc.id, email: doc.data().googleEmail })
-    })
-
+    const accountsList = result.data.accounts || []
     connectedAccounts.value = accountsList
 
     if (accountsList.length > 0 && !selectedCalendarEmail.value) {
@@ -677,6 +866,7 @@ async function saveWidgetSettings() {
   saving.value = true
 
   try {
+    // 1. FIRST SAVE: Persist basic layout variables inside widgets block document collection
     const docRef = doc(db, 'widgets', activeWidgetId.value)
     await setDoc(
       docRef,
@@ -692,8 +882,20 @@ async function saveWidgetSettings() {
       { merge: true },
     )
 
+    // 2. SECOND SAVE: Persist structural communication pipelines rules on the core host profiles document
+    const userDocRef = doc(db, 'users', props.userId)
+    await setDoc(
+      userDocRef,
+      {
+        enablePenciledIn: enablePenciledInPipeline.value,
+        messageTemplates: JSON.parse(JSON.stringify(customMessageTemplates.value)),
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true },
+    )
+
     status.type = 'success'
-    status.message = 'Widget customizations saved successfully!'
+    status.message = 'Widget engine preferences and custom message blocks synchronized perfectly!'
 
     const iframe = document.querySelector('iframe')
     if (iframe) iframe.src = iframe.src
@@ -727,7 +929,12 @@ onMounted(async () => {
     const userDocRef = doc(db, 'users', props.userId)
     const userSnap = await getDoc(userDocRef)
     if (userSnap.exists()) {
-      userPlanTier.value = userSnap.data().planTier || 'free'
+      const incomingProfileData = userSnap.data()
+      userPlanTier.value = incomingProfileData.planTier || 'free'
+
+      // Load user customized pipeline configuration settings options
+      enablePenciledInPipeline.value = incomingProfileData.enablePenciledIn ?? false
+      customMessageTemplates.value = incomingProfileData.messageTemplates || []
     }
 
     const docRef = doc(db, 'widgets', activeWidgetId.value)
@@ -762,6 +969,8 @@ onMounted(async () => {
         maxWidth: savedSettings.maxWidth || '100%',
         baseTheme: savedSettings.baseTheme || 'dark',
         agendaLimit: savedSettings.agendaLimit || 3,
+        bookingStyle: savedSettings.bookingStyle || 'slot',
+        slotDurationMinutes: savedSettings.slotDurationMinutes || 30,
       })
     }
 
