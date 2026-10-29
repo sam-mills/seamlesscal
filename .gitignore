@@ -67,5 +67,7 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
-dist
-vite.config.js.timestamp-*.mjs"
+# Build output & temp configs
+dist/
+**/dist/
+vite.config.js.timestamp-*.mjs
