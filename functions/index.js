@@ -125,9 +125,10 @@ exports.getWidgetCalendar = onRequest(
 
           if (connectionData.refreshToken) {
             oauth2Client = new google.auth.OAuth2(
-              '415247533936-e569avvi75k2kod4q9nbhecsqojts65n.apps.googleusercontent.com',
-              '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',
-            )
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+)
             oauth2Client.setCredentials({
               access_token: connectionData.accessToken,
               refresh_token: connectionData.refreshToken,
@@ -272,10 +273,10 @@ exports.exchangeAuthCodeForTokens = onCall(async (request) => {
   const uid = request.auth.uid
 
   const oauth2Client = new google.auth.OAuth2(
-    '415247533936-e569avvi75k2kod4q9nbhecsqojts65n.apps.googleusercontent.com',
-    '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',
-    'postmessage',
-  )
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
 
   try {
     const { tokens } = await oauth2Client.getToken(code)
@@ -502,9 +503,10 @@ exports.createBooking = onRequest({ cors: true, invoker: 'public' }, async (req,
         const connectionData = connectionSnapshot.docs[0].data()
 
         const oauth2Client = new google.auth.OAuth2(
-          '415247533936-e569avvi75k2kod4q9nbhecsqojts65n.apps.googleusercontent.com',
-          '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',
-        )
+          process.env.GOOGLE_CLIENT_ID,
+          process.env.GOOGLE_CLIENT_SECRET,
+          process.env.GOOGLE_REDIRECT_URI
+        );
         oauth2Client.setCredentials({
           access_token: connectionData.accessToken,
           refresh_token: connectionData.refreshToken,
@@ -679,9 +681,10 @@ exports.updateBookingStatus = onCall(async (request) => {
       if (!connectionSnapshot.empty) {
         const connectionData = connectionSnapshot.docs[0].data()
         const oauth2Client = new google.auth.OAuth2(
-          '415247533936-e569avvi75k2kod4q9nbhecsqojts65n.apps.googleusercontent.com',
-          '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',
-        )
+          process.env.GOOGLE_CLIENT_ID,
+          process.env.GOOGLE_CLIENT_SECRET,
+          process.env.GOOGLE_REDIRECT_URI
+        );
         oauth2Client.setCredentials({
           access_token: connectionData.accessToken,
           refresh_token: connectionData.refreshToken,
@@ -978,9 +981,10 @@ exports.getFreeBusySlots = onRequest({ cors: true, invoker: 'public' }, async (r
     const connectionData = connectionSnapshot.docs[0].data()
 
     const oauth2Client = new google.auth.OAuth2(
-      '415247533936-e569avvi75k2kod4q9nbhecsqojts65n.apps.googleusercontent.com',
-      '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',
-    )
+          process.env.GOOGLE_CLIENT_ID,
+          process.env.GOOGLE_CLIENT_SECRET,
+          process.env.GOOGLE_REDIRECT_URI
+        );
 
     oauth2Client.setCredentials({
       access_token: connectionData.accessToken,
@@ -1122,10 +1126,11 @@ exports.verifyFormSignatureViaAPI = onCall(async (request) => {
     const connectionDocRef = connectionSnapshot.docs[0].ref
     const connectionData = connectionSnapshot.docs[0].data()
 
-    const oauth2Client = new google.auth.OAuth2(
-      '415247533936-e569avvi75k2kod4q9nbhecsqojts65n.apps.googleusercontent.com',
-      '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',
-    )
+ const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
 
     oauth2Client.setCredentials({
       access_token: connectionData.accessToken,
